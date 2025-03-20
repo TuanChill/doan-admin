@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Table, Input, Select } from "antd";
+import { Button, Table, Input, Select, Tag } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
 
 const QuanLyBaiViet = () => {
@@ -16,16 +16,93 @@ const QuanLyBaiViet = () => {
             create_at: "10/03/2024",
             update_at: "12/03/2024",
         },
+        {
+            key: "2",
+            title: "Cuộc họp cấp cao về quốc phòng",
+            category: "Sự kiện",
+            is_highlight: "Không nổi bật",
+            author: "Trần Văn B",
+            user: "editor",
+            create_at: "15/03/2024",
+            update_at: "18/03/2024",
+        },
+        {
+            key: "3",
+            title: "Diễn tập quân sự khu vực miền Bắc",
+            category: "Tin tức",
+            is_highlight: "Nổi bật",
+            author: "Lê Thị C",
+            user: "writer",
+            create_at: "20/03/2024",
+            update_at: "22/03/2024",
+        },
     ]);
 
     const columns = [
-        { title: "Tiêu đề", dataIndex: "title", key: "title", align: "center" },
-        { title: "Danh mục", dataIndex: "category", key: "category", align: "center" },
-        { title: "Trạng thái", dataIndex: "is_highlight", key: "is_highlight", align: "center" },
-        { title: "Tác giả", dataIndex: "author", key: "author", align: "center" },
-        { title: "Người dùng", dataIndex: "user", key: "user", align: "center" },
-        { title: "Ngày tạo", dataIndex: "create_at", key: "create_at", align: "center" },
-        { title: "Ngày cập nhật", dataIndex: "update_at", key: "update_at", align: "center" },
+        { 
+            title: "Tiêu đề", 
+            dataIndex: "title", 
+            key: "title", 
+            align: "left", 
+            sorter: (a, b) => a.title.localeCompare(b.title) 
+        },
+        { 
+            title: "Danh mục", 
+            dataIndex: "category", 
+            key: "category", 
+            align: "center",
+            sorter: (a, b) => a.category.localeCompare(b.category)
+        },
+        { 
+            title: "Trạng thái", 
+            dataIndex: "is_highlight", 
+            key: "is_highlight", 
+            align: "center",
+            sorter: (a, b) => a.is_highlight.localeCompare(b.is_highlight),
+            render: (text) => (
+                <Tag 
+                    style={{
+                        borderRadius: "8px",
+                        padding: "2px 10px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        boxShadow: "1px 1px 3px rgba(0, 0, 0, 0.15)",
+                        border: `1px solid ${text === "Nổi bật" ? "#52c41a" : "#fa8c16"}`,
+                        color: text === "Nổi bật" ? "#52c41a" : "#fa8c16",
+                        backgroundColor: "white"
+                    }}
+                >
+                    {text}
+                </Tag>
+            )
+        },
+        { 
+            title: "Tác giả", 
+            dataIndex: "author", 
+            key: "author", 
+            align: "center",
+            sorter: (a, b) => a.author.localeCompare(b.author)
+        },
+        { 
+            title: "Người dùng", 
+            dataIndex: "user", 
+            key: "user", 
+            align: "center"
+        },
+        { 
+            title: "Ngày tạo", 
+            dataIndex: "create_at", 
+            key: "create_at", 
+            align: "center",
+            sorter: (a, b) => new Date(a.create_at) - new Date(b.create_at)
+        },
+        { 
+            title: "Ngày cập nhật", 
+            dataIndex: "update_at", 
+            key: "update_at", 
+            align: "center",
+            sorter: (a, b) => new Date(a.update_at) - new Date(b.update_at)
+        },
     ];
 
     return (
@@ -40,7 +117,10 @@ const QuanLyBaiViet = () => {
             <div className="search-box">
                 <div className="search-container">
                     <Input placeholder="Tiêu đề bài viết" />
-                    <Input placeholder="Danh mục" />
+                    <Select placeholder="Dan mục" style={{ width: "100%" }}>
+                        <Select.Option value="highlighted">Ab</Select.Option>
+                        <Select.Option value="not_highlighted">Bc</Select.Option>
+                    </Select>
                     <Select placeholder="Trạng thái" style={{ width: "100%" }}>
                         <Select.Option value="highlighted">Nổi bật</Select.Option>
                         <Select.Option value="not_highlighted">Không nổi bật</Select.Option>
@@ -130,6 +210,12 @@ const QuanLyBaiViet = () => {
                 :global(.ant-table td), 
                 :global(.ant-table th) {
                     text-align: center !important;
+                }
+
+                /* Căn trái nội dung cột Tiêu đề */
+                :global(.ant-table td:nth-child(1)), 
+                :global(.ant-table th:nth-child(1)) {
+                    text-align: left !important;
                 }
             `}</style>
         </div>
