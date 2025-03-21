@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Table, Input, Select, Tag, Modal, Form, message } from "antd";
+import { Button, Table, Input, Select, Tag, Modal, Form, message, Checkbox } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import { Upload } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 
 const QuanLyBaiViet = () => {
     const [data, setData] = useState([
@@ -55,21 +59,23 @@ const QuanLyBaiViet = () => {
     // Hàm xử lý khi nhấn nút Lưu
     const handleSave = () => {
         form.validateFields().then((values) => {
-            console.log("Received values of form: ", values);
-            // Thêm dữ liệu mới vào state `data`
             const newData = {
                 key: (data.length + 1).toString(),
-                ...values,
+                title: values.title,
+                category: values.category || "",
+                is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
+                author: values.author || "",
+                user: "admin",
                 create_at: new Date().toLocaleDateString(),
                 update_at: new Date().toLocaleDateString(),
-                user: "admin", // Giả sử người dùng mặc định là admin
             };
             setData([...data, newData]);
-            setIsModalVisible(false); // Đóng modal
-            form.resetFields(); // Reset form
-            message.success("Thực hiện thành công"); // Hiển thị thông báo
+            setIsModalVisible(false);
+            form.resetFields();
+            message.success("Thêm bài viết thành công");
         });
     };
+    
 
     const columns = [
         { 
@@ -190,54 +196,61 @@ const QuanLyBaiViet = () => {
                 visible={isModalVisible}
                 onCancel={handleCancel}
                 footer={[
-                    <Button key="cancel" onClick={handleCancel}>
-                        Đóng
-                    </Button>,
-                    <Button key="save" type="primary" onClick={handleSave}>
-                        Lưu
-                    </Button>,
+                    <Button key="cancel" onClick={handleCancel}>Đóng</Button>,
+                    <Button key="save" type="primary" onClick={handleSave}>Lưu</Button>
                 ]}
+                width={800}
             >
                 <Form form={form} layout="vertical">
-                    <Form.Item
-                        name="title"
-                        label="Tiêu đề"
-                        rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
-                    >
-                        <Input placeholder="Nhập tiêu đề" />
+                    <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+                        <Input />
                     </Form.Item>
 
-                    <Form.Item
-                        name="category"
-                        label="Danh mục"
-                        rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
-                    >
-                        <Select placeholder="Chọn danh mục">
+                    <Form.Item name="category" label="Danh mục">
+                        <Select allowClear>
                             <Select.Option value="Tin tức">Tin tức</Select.Option>
                             <Select.Option value="Sự kiện">Sự kiện</Select.Option>
                         </Select>
                     </Form.Item>
 
-                    <Form.Item
-                        name="is_highlight"
-                        label="Trạng thái"
-                        rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-                    >
-                        <Select placeholder="Chọn trạng thái">
-                            <Select.Option value="Nổi bật">Nổi bật</Select.Option>
-                            <Select.Option value="Không nổi bật">Không nổi bật</Select.Option>
-                        </Select>
+                    <Form.Item name="content" label="Nội dung" rules={[{ required: true }]}>
+                        <ReactQuill theme="snow" />
                     </Form.Item>
 
-                    <Form.Item
-                        name="author"
-                        label="Tác giả"
-                        rules={[{ required: true, message: "Vui lòng nhập tác giả" }]}
-                    >
-                        <Input placeholder="Nhập tác giả" />
+                    <Form.Item name="is_highlight" valuePropName="checked">
+                        <Checkbox>Nổi bật</Checkbox>
+                    </Form.Item>
+
+                    <Form.Item name="excerpt" label="Tóm tắt">
+                        <ReactQuill theme="snow" />
+                    </Form.Item>
+
+                    <Form.Item name="author" label="Tác giả">
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item name="author_bio" label="Tiểu sử tác giả">
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item name="image" label="Ảnh đại diện">
+                        <Upload name="image" action="/upload.do" listType="picture">
+                            <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
+                        </Upload>
+                    </Form.Item>
+
+                    <Form.Item name="image_caption" label="Chú thích ảnh">
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item name="audio" label="Tệp âm thanh">
+                        <Upload name="audio" action="/upload.do">
+                            <Button icon={<UploadOutlined />}>Tải âm thanh lên</Button>
+                        </Upload>
                     </Form.Item>
                 </Form>
             </Modal>
+
 
             {/* CSS nội bộ */}
             <style jsx>{`
