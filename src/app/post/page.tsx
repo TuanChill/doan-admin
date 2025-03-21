@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Table, Input, Select, Tag } from "antd";
+import { Button, Table, Input, Select, Tag, Modal, Form, message } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, EyeOutlined } from "@ant-design/icons";
 
 const QuanLyBaiViet = () => {
@@ -38,26 +38,62 @@ const QuanLyBaiViet = () => {
         },
     ]);
 
+    const [isModalVisible, setIsModalVisible] = useState(false); // State để điều khiển hiển thị modal
+    const [form] = Form.useForm(); // Form instance
+
+    // Hàm hiển thị modal thêm mới
+    const showModal = () => {
+        setIsModalVisible(true);
+    };
+
+    // Hàm đóng modal
+    const handleCancel = () => {
+        setIsModalVisible(false);
+        form.resetFields(); // Reset form khi đóng modal
+    };
+
+    // Hàm xử lý khi nhấn nút Lưu
+    const handleSave = () => {
+        form.validateFields().then((values) => {
+            console.log("Received values of form: ", values);
+            // Thêm dữ liệu mới vào state `data`
+            const newData = {
+                key: (data.length + 1).toString(),
+                ...values,
+                create_at: new Date().toLocaleDateString(),
+                update_at: new Date().toLocaleDateString(),
+                user: "admin", // Giả sử người dùng mặc định là admin
+            };
+            setData([...data, newData]);
+            setIsModalVisible(false); // Đóng modal
+            form.resetFields(); // Reset form
+            message.success("Thực hiện thành công"); // Hiển thị thông báo
+        });
+    };
+
     const columns = [
         { 
             title: "Tiêu đề", 
             dataIndex: "title", 
             key: "title", 
             align: "left", 
-            sorter: (a, b) => a.title.localeCompare(b.title) 
+            sorter: (a, b) => a.title.localeCompare(b.title),
+            tooltip: false
         },
         { 
             title: "Danh mục", 
             dataIndex: "category", 
             key: "category", 
             align: "center",
-            sorter: (a, b) => a.category.localeCompare(b.category)
+            sorter: (a, b) => a.category.localeCompare(b.category),
+            tooltip: false
         },
         { 
             title: "Trạng thái", 
             dataIndex: "is_highlight", 
             key: "is_highlight", 
             align: "center",
+            tooltip: false, 
             sorter: (a, b) => a.is_highlight.localeCompare(b.is_highlight),
             render: (text) => (
                 <Tag 
@@ -81,7 +117,8 @@ const QuanLyBaiViet = () => {
             dataIndex: "author", 
             key: "author", 
             align: "center",
-            sorter: (a, b) => a.author.localeCompare(b.author)
+            sorter: (a, b) => a.author.localeCompare(b.author),
+            tooltip: false
         },
         { 
             title: "Người dùng", 
@@ -94,14 +131,16 @@ const QuanLyBaiViet = () => {
             dataIndex: "create_at", 
             key: "create_at", 
             align: "center",
-            sorter: (a, b) => new Date(a.create_at) - new Date(b.create_at)
+            sorter: (a, b) => new Date(a.create_at) - new Date(b.create_at),
+            tooltip: false
         },
         { 
             title: "Ngày cập nhật", 
             dataIndex: "update_at", 
             key: "update_at", 
             align: "center",
-            sorter: (a, b) => new Date(a.update_at) - new Date(b.update_at)
+            sorter: (a, b) => new Date(a.update_at) - new Date(b.update_at),
+            tooltip: false
         },
     ];
 
@@ -117,7 +156,7 @@ const QuanLyBaiViet = () => {
             <div className="search-box">
                 <div className="search-container">
                     <Input placeholder="Tiêu đề bài viết" />
-                    <Select placeholder="Dan mục" style={{ width: "100%" }}>
+                    <Select placeholder="Danh mục" style={{ width: "100%" }}>
                         <Select.Option value="highlighted">Ab</Select.Option>
                         <Select.Option value="not_highlighted">Bc</Select.Option>
                     </Select>
@@ -132,7 +171,7 @@ const QuanLyBaiViet = () => {
             {/* Vùng 3: Nút chức năng + Lưới dữ liệu */}
             <div className="content">
                 <div className="actions">
-                    <Button type="primary" icon={<PlusOutlined />}>Thêm mới</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Thêm mới</Button>
                     <Button type="default" icon={<EyeOutlined />}>Xem</Button>
                     <Button type="default" icon={<EditOutlined />}>Sửa</Button>
                     <Button type="default" danger icon={<DeleteOutlined />}>Xóa</Button>
@@ -144,6 +183,61 @@ const QuanLyBaiViet = () => {
                     pagination={{ pageSize: 10 }} 
                 />
             </div>
+
+            {/* Modal thêm mới */}
+            <Modal
+                title="Thêm mới bài viết"
+                visible={isModalVisible}
+                onCancel={handleCancel}
+                footer={[
+                    <Button key="cancel" onClick={handleCancel}>
+                        Đóng
+                    </Button>,
+                    <Button key="save" type="primary" onClick={handleSave}>
+                        Lưu
+                    </Button>,
+                ]}
+            >
+                <Form form={form} layout="vertical">
+                    <Form.Item
+                        name="title"
+                        label="Tiêu đề"
+                        rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}
+                    >
+                        <Input placeholder="Nhập tiêu đề" />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="category"
+                        label="Danh mục"
+                        rules={[{ required: true, message: "Vui lòng chọn danh mục" }]}
+                    >
+                        <Select placeholder="Chọn danh mục">
+                            <Select.Option value="Tin tức">Tin tức</Select.Option>
+                            <Select.Option value="Sự kiện">Sự kiện</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="is_highlight"
+                        label="Trạng thái"
+                        rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+                    >
+                        <Select placeholder="Chọn trạng thái">
+                            <Select.Option value="Nổi bật">Nổi bật</Select.Option>
+                            <Select.Option value="Không nổi bật">Không nổi bật</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="author"
+                        label="Tác giả"
+                        rules={[{ required: true, message: "Vui lòng nhập tác giả" }]}
+                    >
+                        <Input placeholder="Nhập tác giả" />
+                    </Form.Item>
+                </Form>
+            </Modal>
 
             {/* CSS nội bộ */}
             <style jsx>{`
