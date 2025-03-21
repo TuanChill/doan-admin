@@ -44,39 +44,140 @@ const QuanLyBaiViet = () => {
 
     const [isModalVisible, setIsModalVisible] = useState(false); // State để điều khiển hiển thị modal
     const [form] = Form.useForm(); // Form instance
+    const [selectedRecord, setSelectedRecord] = useState(null);
+    const [isViewMode, setIsViewMode] = useState(false);
+    const currentUser = localStorage.getItem("username") || "admin"; //  Lấy tên user đăng nhập
+
+
 
     // Hàm hiển thị modal thêm mới
     const showModal = () => {
+        setSelectedRecord(null); //  Reset bản ghi đang chọn
+        setIsViewMode(false);    //  Đảm bảo không đang ở chế độ xem
+        form.setFieldsValue({ created_by: currentUser }); // Gán username vào form
+        setIsModalVisible(true); //  Mở modal
+    form.resetFields();      // Reset form về rỗng
+    };
+
+    const handleEdit = () => {
+        if (!selectedRecord) {
+            message.warning("Vui lòng chọn một bản ghi để sửa!");
+            return;
+        }
+    
+        form.setFieldsValue({
+            ...selectedRecord,
+            is_highlight: selectedRecord.is_highlight === "Nổi bật",
+            image: selectedRecord.image || [],  //  Gán fileList vào form
+            audio: selectedRecord.audio || [],  //  Gán fileList vào form
+        });
+    
+        setIsViewMode(false);
         setIsModalVisible(true);
     };
+    
+    
+    
+    
+    
+    
+    const handleView = () => {
+        if (!selectedRecord) {
+            message.warning("Vui lòng chọn một bản ghi để xem!");
+            return;
+        }
+    
+        form.setFieldsValue({
+            ...selectedRecord,
+            is_highlight: selectedRecord.is_highlight === "Nổi bật", // Chuyển về boolean
+        });
+    
+        setIsViewMode(true); // Bật chế độ xem
+        setIsModalVisible(true);
+    };
+    
+    
+    const handleDelete = () => {
+        if (!selectedRecord) {
+            message.warning("Vui lòng chọn một bản ghi để xoá!");
+            return;
+        }
+    
+        Modal.confirm({
+            title: "Xác nhận xoá",
+            content: `Bạn có chắc chắn muốn xoá bài viết: "${selectedRecord.title}"?`,
+            okText: "OK",
+            okType: "danger",
+            cancelText: "Hủy",
+            onOk: () => {
+                const newData = data.filter(item => item.key !== selectedRecord.key);
+                setData(newData);
+                setSelectedRecord(null);
+                message.success("Đã xoá bài viết");
+            }
+        });
+    };
+    
 
     // Hàm đóng modal
     const handleCancel = () => {
         setIsModalVisible(false);
         form.resetFields(); // Reset form khi đóng modal
+        setSelectedRecord(null);
+        setIsViewMode(false);
+
     };
 
     // Hàm xử lý khi nhấn nút Lưu
     const handleSave = () => {
         form.validateFields().then((values) => {
-            const newData = {
-                key: (data.length + 1).toString(),
-                title: values.title,
-                category: values.category || "",
-                is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
-                author: values.author || "",
-                user: "admin",
-                create_at: new Date().toLocaleDateString(),
-                update_at: new Date().toLocaleDateString(),
-            };
-            setData([...data, newData]);
+            const currentUser = localStorage.getItem("username") || "admin"; 
+    
+            // Chuyển đổi dữ liệu file về đúng dạng fileList
+            const imageFile = values.image?.fileList || [];
+            const audioFile = values.audio?.fileList || [];
+    
+            if (selectedRecord) {
+                // Nếu đang sửa
+                const updatedData = data.map((item) =>
+                    item.key === selectedRecord.key
+                        ? {
+                            ...item,
+                            ...values,
+                            is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
+                            image: imageFile,  // Lưu fileList vào state
+                            audio: audioFile,  // Lưu fileList vào state
+                            update_at: new Date().toLocaleDateString(),
+                        }
+                        : item
+                );
+                setData(updatedData);
+                message.success("Cập nhật bài viết thành công");
+            } else {
+                // Nếu thêm mới
+                const newData = {
+                    key: (data.length + 1).toString(),
+                    ...values,
+                    created_by: values.created_by || currentUser,
+                    is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
+                    image: imageFile,  // Lưu fileList vào state
+                    audio: audioFile,  // Lưu fileList vào state
+                    create_at: new Date().toLocaleDateString(),
+                    update_at: new Date().toLocaleDateString(),
+                };
+                setData([...data, newData]);
+                message.success("Thêm bài viết thành công");
+            }
+    
+            setSelectedRecord(null);
             setIsModalVisible(false);
             form.resetFields();
-            message.success("Thêm bài viết thành công");
         });
     };
     
-
+    
+    
+    
     const columns = [
         { 
             title: "Tiêu đề", 
@@ -84,7 +185,7 @@ const QuanLyBaiViet = () => {
             key: "title", 
             align: "left", 
             sorter: (a, b) => a.title.localeCompare(b.title),
-            tooltip: false
+            showSorterTooltip: false
         },
         { 
             title: "Danh mục", 
@@ -92,14 +193,14 @@ const QuanLyBaiViet = () => {
             key: "category", 
             align: "center",
             sorter: (a, b) => a.category.localeCompare(b.category),
-            tooltip: false
+            showSorterTooltip: false
         },
         { 
             title: "Trạng thái", 
             dataIndex: "is_highlight", 
             key: "is_highlight", 
             align: "center",
-            tooltip: false, 
+            showSorterTooltip: false, 
             sorter: (a, b) => a.is_highlight.localeCompare(b.is_highlight),
             render: (text) => (
                 <Tag 
@@ -124,10 +225,10 @@ const QuanLyBaiViet = () => {
             key: "author", 
             align: "center",
             sorter: (a, b) => a.author.localeCompare(b.author),
-            tooltip: false
+            showSorterTooltip: false
         },
         { 
-            title: "Người dùng", 
+            title: "Người tạo", 
             dataIndex: "user", 
             key: "user", 
             align: "center"
@@ -138,7 +239,7 @@ const QuanLyBaiViet = () => {
             key: "create_at", 
             align: "center",
             sorter: (a, b) => new Date(a.create_at) - new Date(b.create_at),
-            tooltip: false
+            showSorterTooltip: false
         },
         { 
             title: "Ngày cập nhật", 
@@ -146,7 +247,7 @@ const QuanLyBaiViet = () => {
             key: "update_at", 
             align: "center",
             sorter: (a, b) => new Date(a.update_at) - new Date(b.update_at),
-            tooltip: false
+            showSorterTooltip: false
         },
     ];
 
@@ -155,7 +256,7 @@ const QuanLyBaiViet = () => {
             {/* Vùng 1: Header */}
             <div className="header">
                 <div className="background-image"></div>
-                <h1>Quản lý bài viết/ tin tức</h1>
+                <h1>Quản lý bài viết</h1>
             </div>
 
             {/* Vùng 2: Tìm kiếm */}
@@ -163,8 +264,8 @@ const QuanLyBaiViet = () => {
                 <div className="search-container">
                     <Input placeholder="Tiêu đề bài viết" />
                     <Select placeholder="Danh mục" style={{ width: "100%" }}>
-                        <Select.Option value="highlighted">Ab</Select.Option>
-                        <Select.Option value="not_highlighted">Bc</Select.Option>
+                        <Select.Option value="highlighted">Tin tức</Select.Option>
+                        <Select.Option value="not_highlighted">Sự kiện</Select.Option>
                     </Select>
                     <Select placeholder="Trạng thái" style={{ width: "100%" }}>
                         <Select.Option value="highlighted">Nổi bật</Select.Option>
@@ -178,79 +279,105 @@ const QuanLyBaiViet = () => {
             <div className="content">
                 <div className="actions">
                     <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Thêm mới</Button>
-                    <Button type="default" icon={<EyeOutlined />}>Xem</Button>
-                    <Button type="default" icon={<EditOutlined />}>Sửa</Button>
-                    <Button type="default" danger icon={<DeleteOutlined />}>Xóa</Button>
+                    <Button type="default" icon={<EyeOutlined />} onClick={handleView}>Xem</Button>
+                    <Button type="default" icon={<EditOutlined />} onClick={handleEdit}>Sửa</Button>
+                    <Button type="default" danger icon={<DeleteOutlined />} onClick={handleDelete}>Xóa</Button>
                 </div>
 
                 <Table 
                     dataSource={data} 
                     columns={columns} 
                     pagination={{ pageSize: 10 }} 
+                    onRow={(record) => ({
+                        onClick: () => setSelectedRecord(record),
+                    })}
                 />
             </div>
 
             {/* Modal thêm mới */}
             <Modal
-                title="Thêm mới bài viết"
+                title={isViewMode
+                    ? "Chi tiết bài viết"
+                    : selectedRecord
+                    ? "Chỉnh sửa bài viết"
+                    : "Thêm mới bài viết"
+                }
                 visible={isModalVisible}
                 onCancel={handleCancel}
                 footer={[
                     <Button key="cancel" onClick={handleCancel}>Đóng</Button>,
-                    <Button key="save" type="primary" onClick={handleSave}>Lưu</Button>
+                    !isViewMode && (
+                        <Button key="save" type="primary" onClick={handleSave}>
+                            Lưu
+                        </Button>
+                    ),
                 ]}
+                
                 width={800}
             >
                 <Form form={form} layout="vertical">
                     <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-                        <Input />
+                        <Input disabled={isViewMode}/>
                     </Form.Item>
 
                     <Form.Item name="category" label="Danh mục">
-                        <Select allowClear>
+                        <Select disabled={isViewMode} allowClear>
                             <Select.Option value="Tin tức">Tin tức</Select.Option>
                             <Select.Option value="Sự kiện">Sự kiện</Select.Option>
+                            
                         </Select>
                     </Form.Item>
 
                     <Form.Item name="content" label="Nội dung" rules={[{ required: true }]}>
-                        <ReactQuill theme="snow" />
+                        <ReactQuill readOnly={isViewMode} theme="snow" />
                     </Form.Item>
 
                     <Form.Item name="is_highlight" valuePropName="checked">
-                        <Checkbox>Nổi bật</Checkbox>
+                        <Checkbox disabled={isViewMode}>Nổi bật</Checkbox>
                     </Form.Item>
 
                     <Form.Item name="excerpt" label="Tóm tắt">
-                        <ReactQuill theme="snow" />
+                        <ReactQuill readOnly={isViewMode} theme="snow"  />
                     </Form.Item>
 
                     <Form.Item name="author" label="Tác giả">
-                        <Input />
+                        <Input disabled={isViewMode} />
                     </Form.Item>
 
                     <Form.Item name="author_bio" label="Tiểu sử tác giả">
-                        <Input />
+                        <Input disabled={isViewMode} />
                     </Form.Item>
 
-                    <Form.Item name="image" label="Ảnh đại diện">
-                        <Upload name="image" action="/upload.do" listType="picture">
-                            <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
+                    <Form.Item name="image" label="Ảnh">
+                        <Upload
+                            name="image"
+                            action="/upload.do"
+                            listType="picture"
+                            defaultFileList={form.getFieldValue("image") || []} // 👈 Hiển thị ảnh đã upload
+                        >
+                        <Button icon={<UploadOutlined />} disabled={isViewMode}>Tải ảnh lên</Button>
                         </Upload>
                     </Form.Item>
 
                     <Form.Item name="image_caption" label="Chú thích ảnh">
-                        <Input />
+                        <Input disabled={isViewMode}/>
                     </Form.Item>
 
                     <Form.Item name="audio" label="Tệp âm thanh">
-                        <Upload name="audio" action="/upload.do">
-                            <Button icon={<UploadOutlined />}>Tải âm thanh lên</Button>
+                        <Upload
+                            name="audio"
+                            action="/upload.do"
+                            defaultFileList={form.getFieldValue("audio") || []} // 👈 Hiển thị audio đã upload
+                        >
+                        <Button icon={<UploadOutlined />} disabled={isViewMode}>Tải tệp âm thanh lên</Button>
                         </Upload>
+                    </Form.Item>
+
+                    <Form.Item name="created_by" label="Người tạo">
+                        <Input disabled />
                     </Form.Item>
                 </Form>
             </Modal>
-
 
             {/* CSS nội bộ */}
             <style jsx>{`
