@@ -47,6 +47,12 @@ const QuanLyBaiViet = () => {
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [isViewMode, setIsViewMode] = useState(false);
     const currentUser = localStorage.getItem("username") || "admin"; //  Lấy tên user đăng nhập
+    const [searchFilters, setSearchFilters] = useState({
+        title: "",
+        category: "",
+        is_highlight: "",
+      });
+    const [filteredData, setFilteredData] = useState(data);
 
 
 
@@ -76,11 +82,28 @@ const QuanLyBaiViet = () => {
         setIsModalVisible(true);
     };
     
-    
-    
-    
-    
-    
+    const handleSearch = () => {
+        const filtered = data.filter((item) => {
+          const matchesTitle = item.title
+            .toLowerCase()
+            .includes(searchFilters.title.trim().toLowerCase());
+      
+          const matchesCategory = searchFilters.category
+            ? item.category === searchFilters.category
+            : true;
+      
+          const matchesHighlight = searchFilters.is_highlight
+            ? item.is_highlight === searchFilters.is_highlight
+            : true;
+      
+          return matchesTitle && matchesCategory && matchesHighlight;
+        });
+      
+        setFilteredData(filtered);
+      };
+      
+      
+      
     const handleView = () => {
         if (!selectedRecord) {
             message.warning("Vui lòng chọn một bản ghi để xem!");
@@ -262,16 +285,30 @@ const QuanLyBaiViet = () => {
             {/* Vùng 2: Tìm kiếm */}
             <div className="search-box">
                 <div className="search-container">
-                    <Input placeholder="Tiêu đề bài viết" />
-                    <Select placeholder="Danh mục" style={{ width: "100%" }}>
-                        <Select.Option value="highlighted">Tin tức</Select.Option>
-                        <Select.Option value="not_highlighted">Sự kiện</Select.Option>
+                    <Input placeholder="Tiêu đề bài viết" 
+                        onChange={(e) =>
+                        setSearchFilters((prev) => ({ ...prev, title: e.target.value }))
+                        } 
+                    />
+                    <Select placeholder="Danh mục" style={{ width: "100%" }}
+                        allowClear
+                        onChange={(value) =>
+                        setSearchFilters((prev) => ({ ...prev, category: value }))
+                    }
+                    >
+                        <Select.Option value="Tin tức">Tin tức</Select.Option>
+                        <Select.Option value="Sự kiện">Sự kiện</Select.Option>
                     </Select>
-                    <Select placeholder="Trạng thái" style={{ width: "100%" }}>
-                        <Select.Option value="highlighted">Nổi bật</Select.Option>
-                        <Select.Option value="not_highlighted">Không nổi bật</Select.Option>
+                    <Select placeholder="Trạng thái" style={{ width: "100%" }}
+                        allowClear
+                        onChange={(value) =>
+                        setSearchFilters((prev) => ({ ...prev, is_highlight: value }))
+                        }
+                    >
+                        <Select.Option value="Nổi bật">Nổi bật</Select.Option>
+                        <Select.Option value="Không nổi bật">Không nổi bật</Select.Option>
                     </Select>
-                    <Button type="primary" icon={<SearchOutlined />}>Tìm kiếm</Button>
+                    <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>Tìm kiếm</Button>
                 </div>
             </div>
 
@@ -279,19 +316,27 @@ const QuanLyBaiViet = () => {
             <div className="content">
                 <div className="actions">
                     <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>Thêm mới</Button>
-                    <Button type="default" icon={<EyeOutlined />} onClick={handleView}>Xem</Button>
                     <Button type="default" icon={<EditOutlined />} onClick={handleEdit}>Sửa</Button>
+                    <Button type="default" icon={<EyeOutlined />} onClick={handleView}>Xem</Button>
                     <Button type="default" danger icon={<DeleteOutlined />} onClick={handleDelete}>Xóa</Button>
                 </div>
 
-                <Table 
-                    dataSource={data} 
-                    columns={columns} 
-                    pagination={{ pageSize: 10 }} 
+                <Table
+                     dataSource={filteredData}
+                        columns={columns}
+                        pagination={{
+                            pageSizeOptions: ["10", "20", "50"],
+                            showSizeChanger: true,
+                            showQuickJumper: true,
+                            showTotal: (total, range) =>
+                            `Hiển thị ${range[0]}–${range[1]} / Tổng cộng ${total} bài viết`,
+                            defaultPageSize: 10,
+                    }}
                     onRow={(record) => ({
-                        onClick: () => setSelectedRecord(record),
+                    onClick: () => setSelectedRecord(record),
                     })}
                 />
+
             </div>
 
             {/* Modal thêm mới */}
