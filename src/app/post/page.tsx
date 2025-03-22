@@ -154,49 +154,65 @@ const QuanLyBaiViet = () => {
     // Hàm xử lý khi nhấn nút Lưu
     const handleSave = () => {
         form.validateFields().then((values) => {
-            const currentUser = localStorage.getItem("username") || "admin"; 
-    
-            // Chuyển đổi dữ liệu file về đúng dạng fileList
-            const imageFile = values.image?.fileList || [];
-            const audioFile = values.audio?.fileList || [];
-    
-            if (selectedRecord) {
-                // Nếu đang sửa
-                const updatedData = data.map((item) =>
-                    item.key === selectedRecord.key
-                        ? {
-                            ...item,
-                            ...values,
-                            is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
-                            image: imageFile,  // Lưu fileList vào state
-                            audio: audioFile,  // Lưu fileList vào state
-                            update_at: new Date().toLocaleDateString(),
-                        }
-                        : item
-                );
-                setData(updatedData);
-                message.success("Cập nhật bài viết thành công");
-            } else {
-                // Nếu thêm mới
-                const newData = {
-                    key: (data.length + 1).toString(),
+          const currentUser = localStorage.getItem("username") || "admin";
+      
+          const imageFile = values.image?.fileList || [];
+          const audioFile = values.audio?.fileList || [];
+      
+          if (selectedRecord) {
+            //  Nếu đang sửa
+            const updatedData = data.map((item) =>
+              item.key === selectedRecord.key
+                ? {
+                    ...item,
                     ...values,
-                    created_by: values.created_by || currentUser,
                     is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
-                    image: imageFile,  // Lưu fileList vào state
-                    audio: audioFile,  // Lưu fileList vào state
-                    create_at: new Date().toLocaleDateString(),
+                    image: imageFile,
+                    audio: audioFile,
                     update_at: new Date().toLocaleDateString(),
-                };
-                setData([...data, newData]);
-                message.success("Thêm bài viết thành công");
-            }
-    
-            setSelectedRecord(null);
-            setIsModalVisible(false);
-            form.resetFields();
+                  }
+                : item
+            );
+      
+            //  Sắp xếp theo ngày cập nhật mới nhất
+            const sortedData = updatedData.sort(
+              (a, b) => new Date(b.update_at) - new Date(a.update_at)
+            );
+      
+            setData(sortedData);
+            setFilteredData(sortedData);
+            message.success("Cập nhật bài viết thành công");
+          } else {
+            //  Nếu thêm mới
+            const newData = {
+              key: (data.length + 1).toString(),
+              ...values,
+              created_by: values.created_by || currentUser,
+              is_highlight: values.is_highlight ? "Nổi bật" : "Không nổi bật",
+              image: imageFile,
+              audio: audioFile,
+              create_at: new Date().toLocaleDateString(),
+              update_at: new Date().toLocaleDateString(),
+            };
+      
+            const newDataList = [...data, newData];
+      
+            // Sắp xếp theo ngày tạo mới nhất
+            const sortedData = newDataList.sort(
+              (a, b) => new Date(b.create_at) - new Date(a.create_at)
+            );
+      
+            setData(sortedData);
+            setFilteredData(sortedData);
+            message.success("Thêm bài viết thành công");
+          }
+      
+          setSelectedRecord(null);
+          setIsModalVisible(false);
+          form.resetFields();
         });
-    };
+      };
+      
     
     
     
