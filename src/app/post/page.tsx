@@ -384,9 +384,8 @@ const QuanLyBaiViet = () => {
 
                     <Form.Item name="category" label="Danh mục">
                         <Select disabled={isViewMode} allowClear>
-                            <Select.Option value="Tin tức">Tin tức</Select.Option>
-                            <Select.Option value="Sự kiện">Sự kiện</Select.Option>
-                            
+                        <Select.Option value="Tin tức">Tin tức</Select.Option>
+                        <Select.Option value="Sự kiện">Sự kiện</Select.Option>                           
                         </Select>
                     </Form.Item>
 
@@ -433,6 +432,13 @@ const QuanLyBaiViet = () => {
                         >
                         <Button icon={<UploadOutlined />} disabled={isViewMode}>Tải tệp âm thanh lên</Button>
                         </Upload>
+                    </Form.Item>
+
+                    <Form.Item name = "tag" label="Tag">
+                    <Select disabled={isViewMode} allowClear>
+                        <Select.Option value="Một">Một</Select.Option>
+                        <Select.Option value="Hai">Hai</Select.Option>                           
+                        </Select>
                     </Form.Item>
 
                     <Form.Item name="created_by" label="Người tạo">
