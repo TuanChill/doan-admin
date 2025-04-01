@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {Button,
+import {
+  Button,
   Table,
   Input,
   Select,
@@ -23,37 +24,37 @@ import 'react-quill/dist/quill.snow.css';
 import { Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 
-const QuanLyBaiViet = () => {
+const QuanLyVe = () => {
   const [data, setData] = useState([
     {
       key: '1',
-      title: 'Sự kiện quân sự 2024',
-      category: 'Tin tức',
-      is_highlight: 'Nổi bật',
-      author: 'Nguyễn Văn A',
-      user: 'admin',
+      name: 'Vé vào cổng người lớn',
+      price: '40.000đ',
+      type: 'Vé lẻ',
+      description:
+        'Áp dụng cho khách từ 18 tuổi trở lên. Có hiệu lực trong ngày.',
       create_at: '10/03/2024',
       update_at: '12/03/2024',
     },
     {
       key: '2',
-      title: 'Cuộc họp cấp cao về quốc phòng',
-      category: 'Sự kiện',
-      is_highlight: 'Không nổi bật',
-      author: 'Trần Văn B',
-      user: 'editor',
-      create_at: '15/03/2024',
-      update_at: '18/03/2024',
+      name: 'Vé vào cổng trẻ em',
+      price: '20.000đ',
+      type: 'Vé lẻ',
+      description:
+        'Áp dụng cho trẻ em từ 6 đến 17 tuổi. Miễn phí cho trẻ dưới 6 tuổi.',
+      create_at: '10/03/2024',
+      update_at: '12/03/2024',
     },
     {
       key: '3',
-      title: 'Diễn tập quân sự khu vực miền Bắc',
-      category: 'Tin tức',
-      is_highlight: 'Nổi bật',
-      author: 'Lê Thị C',
-      user: 'writer',
-      create_at: '20/03/2024',
-      update_at: '22/03/2024',
+      name: 'Vé đoàn tham quan',
+      price: '150.000đ',
+      type: 'Vé đoàn',
+      description:
+        'Dành cho đoàn từ 10 người trở lên. Hướng dẫn viên miễn phí.',
+      create_at: '10/03/2024',
+      update_at: '12/03/2024',
     },
   ]);
 
@@ -63,9 +64,8 @@ const QuanLyBaiViet = () => {
   const [isViewMode, setIsViewMode] = useState(false);
   const currentUser = localStorage.getItem('username') || 'admin'; //  Lấy tên user đăng nhập
   const [searchFilters, setSearchFilters] = useState({
-    title: '',
-    category: '',
-    is_highlight: '',
+    name: '',
+    type: '',
   });
   const [filteredData, setFilteredData] = useState(data);
 
@@ -97,21 +97,14 @@ const QuanLyBaiViet = () => {
 
   const handleSearch = () => {
     const filtered = data.filter((item) => {
-      const matchesTitle = item.title
+      const matchesName = item.name
         .toLowerCase()
-        .includes(searchFilters.title.trim().toLowerCase());
-
-      const matchesCategory = searchFilters.category
-        ? item.category === searchFilters.category
-        : true;
-
-      const matchesHighlight = searchFilters.is_highlight
-        ? item.is_highlight === searchFilters.is_highlight
-        : true;
-
-      return matchesTitle && matchesCategory && matchesHighlight;
+        .includes(searchFilters.name.trim().toLowerCase());
+      const matchesType = item.type
+        .toLowerCase()
+        .includes(searchFilters.type.trim().toLowerCase());
+      return matchesName && matchesType;
     });
-
     setFilteredData(filtered);
   };
 
@@ -138,7 +131,7 @@ const QuanLyBaiViet = () => {
 
     Modal.confirm({
       title: 'Xác nhận xoá',
-      content: `Bạn có chắc chắn muốn xoá bài viết: "${selectedRecord.title}"?`,
+      content: `Bạn có chắc chắn muốn xoá vé: "${selectedRecord.name}"?`,
       okText: 'OK',
       okType: 'danger',
       cancelText: 'Hủy',
@@ -147,7 +140,7 @@ const QuanLyBaiViet = () => {
         setData(newData);
         setFilteredData(newData); // Thêm dòng này để cập nhật lưới hiển thị
         setSelectedRecord(null);
-        message.success('Đã xoá bài viết');
+        message.success('Đã xoá vé');
       },
     });
   };
@@ -224,51 +217,45 @@ const QuanLyBaiViet = () => {
 
   const columns = [
     {
-      title: 'Tiêu đề',
-      dataIndex: 'title',
-      key: 'title',
+      title: 'Tên vé',
+      dataIndex: 'name',
+      key: 'name',
       align: 'left',
-      sorter: (a, b) => a.title.localeCompare(b.title),
+      sorter: (a, b) => a.name.localeCompare(b.name),
       showSorterTooltip: false,
     },
     {
-      title: 'Danh mục',
-      dataIndex: 'category',
-      key: 'category',
+      title: 'Giá vé',
+      dataIndex: 'price',
+      key: 'price',
       align: 'center',
-      sorter: (a, b) => a.category.localeCompare(b.category),
+      sorter: (a, b) => {
+        const priceA = parseInt(a.price.replace(/[^\d]/g, ''));
+        const priceB = parseInt(b.price.replace(/[^\d]/g, ''));
+        return priceA - priceB;
+      },
       showSorterTooltip: false,
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'is_highlight',
-      key: 'is_highlight',
+      title: 'Loại vé',
+      dataIndex: 'type',
+      key: 'type',
       align: 'center',
+      sorter: (a, b) => a.type.localeCompare(b.type),
       showSorterTooltip: false,
-      sorter: (a, b) => a.is_highlight.localeCompare(b.is_highlight),
+    },
+    {
+      title: 'Mô tả',
+      dataIndex: 'description',
+      key: 'description',
+      align: 'left',
       render: (text) => (
-        <Tag
-          style={{
-            borderRadius: '8px',
-            padding: '2px 10px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            boxShadow: '1px 1px 3px rgba(0, 0, 0, 0.15)',
-            border: `1px solid ${text === 'Nổi bật' ? '#52c41a' : '#fa8c16'}`,
-            color: text === 'Nổi bật' ? '#52c41a' : '#fa8c16',
-            backgroundColor: 'white',
-          }}
-        >
-          {text}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Tác giả',
-      dataIndex: 'author',
-      key: 'author',
-      align: 'center',
-      sorter: (a, b) => a.author.localeCompare(b.author),
+        <div
+          style={{ textAlign: 'left', maxWidth: '300px' }}
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      ), //đảm bảo text bên trái luôn
+      sorter: (a, b) => a.description.localeCompare(b.description),
       showSorterTooltip: false,
     },
     {
@@ -300,40 +287,24 @@ const QuanLyBaiViet = () => {
       {/* Vùng 1: Header */}
       <div className="header">
         <div className="background-image"></div>
-        <h1>Quản lý bài viết</h1>
+        <h1>Quản lý vé</h1>
       </div>
 
       {/* Vùng 2: Tìm kiếm */}
       <div className="search-box">
         <div className="search-container">
           <Input
-            placeholder="Tiêu đề bài viết"
+            placeholder="Tên vé"
             onChange={(e) =>
-              setSearchFilters((prev) => ({ ...prev, title: e.target.value }))
+              setSearchFilters((prev) => ({ ...prev, name: e.target.value }))
             }
           />
-          <Select
-            placeholder="Danh mục"
-            style={{ width: '100%' }}
-            allowClear
-            onChange={(value) =>
-              setSearchFilters((prev) => ({ ...prev, category: value }))
+          <Input
+            placeholder="Loại vé"
+            onChange={(e) =>
+              setSearchFilters((prev) => ({ ...prev, type: e.target.value }))
             }
-          >
-            <Select.Option value="Tin tức">Tin tức</Select.Option>
-            <Select.Option value="Sự kiện">Sự kiện</Select.Option>
-          </Select>
-          <Select
-            placeholder="Trạng thái"
-            style={{ width: '100%' }}
-            allowClear
-            onChange={(value) =>
-              setSearchFilters((prev) => ({ ...prev, is_highlight: value }))
-            }
-          >
-            <Select.Option value="Nổi bật">Nổi bật</Select.Option>
-            <Select.Option value="Không nổi bật">Không nổi bật</Select.Option>
-          </Select>
+          />
           <Button
             type="primary"
             icon={<SearchOutlined />}
@@ -411,74 +382,26 @@ const QuanLyBaiViet = () => {
         width={800}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+          <Form.Item name="name" label="Tên vé" rules={[{ required: true }]}>
             <Input disabled={isViewMode} />
           </Form.Item>
 
-          <Form.Item name="category" label="Danh mục">
-            <Select disabled={isViewMode} allowClear>
-              <Select.Option value="Tin tức">Tin tức</Select.Option>
-              <Select.Option value="Sự kiện">Sự kiện</Select.Option>
-            </Select>
+          <Form.Item name="price" label="Giá vé" rules={[{ required: true }]}>
+            <Input disabled={isViewMode} />
           </Form.Item>
 
-          <Form.Item
-            name="content"
-            label="Nội dung"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="description" label="Mô tả">
             <ReactQuill readOnly={isViewMode} theme="snow" />
           </Form.Item>
 
-          <Form.Item name="is_highlight" valuePropName="checked">
-            <Checkbox disabled={isViewMode}>Nổi bật</Checkbox>
-          </Form.Item>
-
-          <Form.Item name="excerpt" label="Tóm tắt">
-            <ReactQuill readOnly={isViewMode} theme="snow" />
-          </Form.Item>
-
-          <Form.Item name="author" label="Tác giả">
+          <Form.Item name="type" label="Loại vé">
             <Input disabled={isViewMode} />
           </Form.Item>
 
-          <Form.Item name="author_bio" label="Tiểu sử tác giả">
-            <Input disabled={isViewMode} />
-          </Form.Item>
-
-          <Form.Item name="image" label="Ảnh">
-            <Upload
-              name="image"
-              action="/upload.do"
-              listType="picture"
-              defaultFileList={form.getFieldValue('image') || []} // 👈 Hiển thị ảnh đã upload
-            >
-              <Button icon={<UploadOutlined />} disabled={isViewMode}>
-                Tải ảnh lên
-              </Button>
-            </Upload>
-          </Form.Item>
-
-          <Form.Item name="image_caption" label="Chú thích ảnh">
-            <Input disabled={isViewMode} />
-          </Form.Item>
-
-          <Form.Item name="audio" label="Tệp âm thanh">
-            <Upload
-              name="audio"
-              action="/upload.do"
-              defaultFileList={form.getFieldValue('audio') || []} // 👈 Hiển thị audio đã upload
-            >
-              <Button icon={<UploadOutlined />} disabled={isViewMode}>
-                Tải tệp âm thanh lên
-              </Button>
-            </Upload>
-          </Form.Item>
-
-          <Form.Item name="tag" label="Tag">
+          <Form.Item name="action" label="Hành động">
             <Select disabled={isViewMode} allowClear>
-              <Select.Option value="Một">Một</Select.Option>
-              <Select.Option value="Hai">Hai</Select.Option>
+              <Select.Option value="Hiển thị">Hiển thị</Select.Option>
+              <Select.Option value="Ẩn">Ẩn</Select.Option>
             </Select>
           </Form.Item>
 
@@ -530,7 +453,7 @@ const QuanLyBaiViet = () => {
 
         .search-container {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr auto;
+          grid-template-columns: 1fr 1fr auto;
           gap: 10px;
           align-items: center;
         }
@@ -575,4 +498,4 @@ const QuanLyBaiViet = () => {
   );
 };
 
-export default QuanLyBaiViet;
+export default QuanLyVe;

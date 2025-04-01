@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {Button,
+import {
+  Button,
   Table,
   Input,
   Select,
@@ -10,6 +11,8 @@ import {Button,
   Form,
   message,
   Checkbox,
+  Upload,
+  InputNumber,
 } from 'antd';
 import {
   PlusOutlined,
@@ -17,65 +20,62 @@ import {
   DeleteOutlined,
   SearchOutlined,
   EyeOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { Upload } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
 
-const QuanLyBaiViet = () => {
+const QuanLyHienVat = () => {
   const [data, setData] = useState([
     {
       key: '1',
-      title: 'Sự kiện quân sự 2024',
-      category: 'Tin tức',
-      is_highlight: 'Nổi bật',
-      author: 'Nguyễn Văn A',
+      name: 'Trống đồng Đông Sơn',
+      isFeatured: 'Nổi bật',
+      category_artifact: 'Hiện vật khảo cổ',
+      period: 'Thời kỳ Đông Sơn',
       user: 'admin',
-      create_at: '10/03/2024',
-      update_at: '12/03/2024',
+      create_at: '01/01/2024',
+      update_at: '05/01/2024',
     },
     {
       key: '2',
-      title: 'Cuộc họp cấp cao về quốc phòng',
-      category: 'Sự kiện',
-      is_highlight: 'Không nổi bật',
-      author: 'Trần Văn B',
+      name: 'Áo dài của Bác Hồ',
+      isFeatured: 'Không nổi bật',
+      category_artifact: 'Tư liệu lịch sử',
+      period: 'Kháng chiến chống Pháp',
       user: 'editor',
-      create_at: '15/03/2024',
-      update_at: '18/03/2024',
+      create_at: '10/02/2024',
+      update_at: '15/02/2024',
     },
     {
       key: '3',
-      title: 'Diễn tập quân sự khu vực miền Bắc',
-      category: 'Tin tức',
-      is_highlight: 'Nổi bật',
-      author: 'Lê Thị C',
+      name: 'Bản đồ Hoàng Sa - Trường Sa cổ',
+      isFeatured: 'Nổi bật',
+      category_artifact: 'Tư liệu địa lý',
+      period: 'Thế kỷ 17',
       user: 'writer',
-      create_at: '20/03/2024',
-      update_at: '22/03/2024',
+      create_at: '05/03/2024',
+      update_at: '10/03/2024',
     },
   ]);
 
-  const [isModalVisible, setIsModalVisible] = useState(false); // State để điều khiển hiển thị modal
-  const [form] = Form.useForm(); // Form instance
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false);
-  const currentUser = localStorage.getItem('username') || 'admin'; //  Lấy tên user đăng nhập
+  const currentUser = localStorage.getItem('username') || 'admin';
   const [searchFilters, setSearchFilters] = useState({
-    title: '',
-    category: '',
-    is_highlight: '',
+    name: '',
+    category_artifact: '',
   });
   const [filteredData, setFilteredData] = useState(data);
 
-  // Hàm hiển thị modal thêm mới
   const showModal = () => {
-    setSelectedRecord(null); //  Reset bản ghi đang chọn
-    setIsViewMode(false); //  Đảm bảo không đang ở chế độ xem
-    form.setFieldsValue({ created_by: currentUser }); // Gán username vào form
-    setIsModalVisible(true); //  Mở modal
-    form.resetFields(); // Reset form về rỗng
+    setSelectedRecord(null);
+    setIsViewMode(false);
+    form.setFieldsValue({ user: currentUser });
+    setIsModalVisible(true);
+    form.resetFields();
   };
 
   const handleEdit = () => {
@@ -86,33 +86,14 @@ const QuanLyBaiViet = () => {
 
     form.setFieldsValue({
       ...selectedRecord,
-      is_highlight: selectedRecord.is_highlight === 'Nổi bật',
-      image: selectedRecord.image || [], //  Gán fileList vào form
-      audio: selectedRecord.audio || [], //  Gán fileList vào form
+      isFeatured: selectedRecord.isFeatured === 'Nổi bật',
+      image: selectedRecord.image || [],
+      audio: selectedRecord.audio || [],
+      images: selectedRecord.images || [],
     });
 
     setIsViewMode(false);
     setIsModalVisible(true);
-  };
-
-  const handleSearch = () => {
-    const filtered = data.filter((item) => {
-      const matchesTitle = item.title
-        .toLowerCase()
-        .includes(searchFilters.title.trim().toLowerCase());
-
-      const matchesCategory = searchFilters.category
-        ? item.category === searchFilters.category
-        : true;
-
-      const matchesHighlight = searchFilters.is_highlight
-        ? item.is_highlight === searchFilters.is_highlight
-        : true;
-
-      return matchesTitle && matchesCategory && matchesHighlight;
-    });
-
-    setFilteredData(filtered);
   };
 
   const handleView = () => {
@@ -123,10 +104,10 @@ const QuanLyBaiViet = () => {
 
     form.setFieldsValue({
       ...selectedRecord,
-      is_highlight: selectedRecord.is_highlight === 'Nổi bật', // Chuyển về boolean
+      isFeatured: selectedRecord.isFeatured === 'Nổi bật',
     });
 
-    setIsViewMode(true); // Bật chế độ xem
+    setIsViewMode(true);
     setIsModalVisible(true);
   };
 
@@ -138,82 +119,94 @@ const QuanLyBaiViet = () => {
 
     Modal.confirm({
       title: 'Xác nhận xoá',
-      content: `Bạn có chắc chắn muốn xoá bài viết: "${selectedRecord.title}"?`,
+      content: `Bạn có chắc chắn muốn xoá hiện vật: "${selectedRecord.name}"?`,
       okText: 'OK',
       okType: 'danger',
       cancelText: 'Hủy',
       onOk: () => {
         const newData = data.filter((item) => item.key !== selectedRecord.key);
         setData(newData);
-        setFilteredData(newData); // Thêm dòng này để cập nhật lưới hiển thị
+        setFilteredData(newData);
         setSelectedRecord(null);
-        message.success('Đã xoá bài viết');
+        message.success('Đã xoá hiện vật');
       },
     });
   };
 
-  // Hàm đóng modal
+  const handleSearch = () => {
+    const filtered = data.filter((item) => {
+      const matchesName = item.name
+        .toLowerCase()
+        .includes(searchFilters.name.trim().toLowerCase());
+
+      const matchesCategory = searchFilters.category_artifact
+        ? item.category_artifact === searchFilters.category_artifact
+        : true;
+
+      return matchesName && matchesCategory;
+    });
+
+    setFilteredData(filtered);
+  };
+
   const handleCancel = () => {
     setIsModalVisible(false);
-    form.resetFields(); // Reset form khi đóng modal
+    form.resetFields();
     setSelectedRecord(null);
     setIsViewMode(false);
   };
 
-  // Hàm xử lý khi nhấn nút Lưu
   const handleSave = () => {
     form.validateFields().then((values) => {
-      const currentUser = localStorage.getItem('username') || 'admin';
+      values.year = parseInt(values.year);
 
       const imageFile = values.image?.fileList || [];
       const audioFile = values.audio?.fileList || [];
+      const imagesFile = values.images?.fileList || [];
 
       if (selectedRecord) {
-        //  Nếu đang sửa
         const updatedData = data.map((item) =>
           item.key === selectedRecord.key
             ? {
                 ...item,
                 ...values,
-                is_highlight: values.is_highlight ? 'Nổi bật' : 'Không nổi bật',
+                isFeatured: values.isFeatured ? 'Nổi bật' : 'Không nổi bật',
                 image: imageFile,
                 audio: audioFile,
+                images: imagesFile,
                 update_at: new Date().toLocaleDateString(),
               }
             : item
         );
 
-        //  Sắp xếp theo ngày cập nhật mới nhất
         const sortedData = updatedData.sort(
           (a, b) => new Date(b.update_at) - new Date(a.update_at)
         );
 
         setData(sortedData);
         setFilteredData(sortedData);
-        message.success('Cập nhật bài viết thành công');
+        message.success('Cập nhật hiện vật thành công');
       } else {
-        //  Nếu thêm mới
         const newData = {
           key: (data.length + 1).toString(),
           ...values,
-          created_by: values.created_by || currentUser,
-          is_highlight: values.is_highlight ? 'Nổi bật' : 'Không nổi bật',
+          user: currentUser,
+          isFeatured: values.isFeatured ? 'Nổi bật' : 'Không nổi bật',
           image: imageFile,
           audio: audioFile,
+          images: imagesFile,
           create_at: new Date().toLocaleDateString(),
           update_at: new Date().toLocaleDateString(),
         };
 
         const newDataList = [...data, newData];
-
-        // Sắp xếp theo ngày tạo mới nhất
         const sortedData = newDataList.sort(
           (a, b) => new Date(b.create_at) - new Date(a.create_at)
         );
 
         setData(sortedData);
         setFilteredData(sortedData);
-        message.success('Thêm bài viết thành công');
+        message.success('Thêm hiện vật thành công');
       }
 
       setSelectedRecord(null);
@@ -224,28 +217,36 @@ const QuanLyBaiViet = () => {
 
   const columns = [
     {
-      title: 'Tiêu đề',
-      dataIndex: 'title',
-      key: 'title',
+      title: 'Tên hiện vật',
+      dataIndex: 'name',
+      key: 'name',
       align: 'left',
-      sorter: (a, b) => a.title.localeCompare(b.title),
+      sorter: (a, b) => a.name.localeCompare(b.name),
       showSorterTooltip: false,
     },
     {
-      title: 'Danh mục',
-      dataIndex: 'category',
-      key: 'category',
-      align: 'center',
-      sorter: (a, b) => a.category.localeCompare(b.category),
+      title: 'Loại hiện vật',
+      dataIndex: 'category_artifact',
+      key: 'category_artifact',
+      align: 'left',
+      sorter: (a, b) => a.category_artifact.localeCompare(b.category_artifact),
       showSorterTooltip: false,
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'is_highlight',
-      key: 'is_highlight',
-      align: 'center',
+      title: 'Giai đoạn',
+      dataIndex: 'period',
+      key: 'period',
+      align: 'left',
+      sorter: (a, b) => a.period.localeCompare(b.period),
       showSorterTooltip: false,
-      sorter: (a, b) => a.is_highlight.localeCompare(b.is_highlight),
+    },
+    {
+      title: 'Nổi bật',
+      dataIndex: 'isFeatured',
+      key: 'isFeatured',
+      align: 'center',
+      sorter: (a, b) => a.isFeatured.localeCompare(b.isFeatured),
+      showSorterTooltip: false,
       render: (text) => (
         <Tag
           style={{
@@ -262,14 +263,6 @@ const QuanLyBaiViet = () => {
           {text}
         </Tag>
       ),
-    },
-    {
-      title: 'Tác giả',
-      dataIndex: 'author',
-      key: 'author',
-      align: 'center',
-      sorter: (a, b) => a.author.localeCompare(b.author),
-      showSorterTooltip: false,
     },
     {
       title: 'Người tạo',
@@ -297,43 +290,44 @@ const QuanLyBaiViet = () => {
 
   return (
     <div className="container">
-      {/* Vùng 1: Header */}
       <div className="header">
         <div className="background-image"></div>
-        <h1>Quản lý bài viết</h1>
+        <h1>Quản lý hiện vật</h1>
       </div>
 
-      {/* Vùng 2: Tìm kiếm */}
       <div className="search-box">
         <div className="search-container">
           <Input
-            placeholder="Tiêu đề bài viết"
+            placeholder="Tên hiện vật"
             onChange={(e) =>
-              setSearchFilters((prev) => ({ ...prev, title: e.target.value }))
+              setSearchFilters((prev) => ({
+                ...prev,
+                name: e.target.value,
+              }))
             }
           />
           <Select
-            placeholder="Danh mục"
-            style={{ width: '100%' }}
+            placeholder="Chọn loại hiện vật"
             allowClear
             onChange={(value) =>
-              setSearchFilters((prev) => ({ ...prev, category: value }))
+              setSearchFilters((prev) => ({
+                ...prev,
+                category_artifact: value || '',
+              }))
             }
           >
-            <Select.Option value="Tin tức">Tin tức</Select.Option>
-            <Select.Option value="Sự kiện">Sự kiện</Select.Option>
+            <Select.Option value="Hiện vật khảo cổ">
+              Hiện vật khảo cổ
+            </Select.Option>
+            <Select.Option value="Tư liệu lịch sử">
+              Tư liệu lịch sử
+            </Select.Option>
+            <Select.Option value="Tư liệu địa lý">Tư liệu địa lý</Select.Option>
+            <Select.Option value="Hiện vật văn hóa">
+              Hiện vật văn hóa
+            </Select.Option>
           </Select>
-          <Select
-            placeholder="Trạng thái"
-            style={{ width: '100%' }}
-            allowClear
-            onChange={(value) =>
-              setSearchFilters((prev) => ({ ...prev, is_highlight: value }))
-            }
-          >
-            <Select.Option value="Nổi bật">Nổi bật</Select.Option>
-            <Select.Option value="Không nổi bật">Không nổi bật</Select.Option>
-          </Select>
+
           <Button
             type="primary"
             icon={<SearchOutlined />}
@@ -344,24 +338,18 @@ const QuanLyBaiViet = () => {
         </div>
       </div>
 
-      {/* Vùng 3: Nút chức năng + Lưới dữ liệu */}
       <div className="content">
         <div className="actions">
           <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
             Thêm mới
           </Button>
-          <Button type="default" icon={<EditOutlined />} onClick={handleEdit}>
+          <Button icon={<EditOutlined />} onClick={handleEdit}>
             Sửa
           </Button>
-          <Button type="default" icon={<EyeOutlined />} onClick={handleView}>
+          <Button icon={<EyeOutlined />} onClick={handleView}>
             Xem
           </Button>
-          <Button
-            type="default"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={handleDelete}
-          >
+          <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
             Xóa
           </Button>
         </div>
@@ -373,12 +361,13 @@ const QuanLyBaiViet = () => {
             selectedRecord && selectedRecord.key === record.key
               ? 'selected-row'
               : ''
+          }
           pagination={{
             pageSizeOptions: ['10', '20', '50'],
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `Hiển thị ${range[0]}–${range[1]} / Tổng cộng ${total} bài viết`,
+              `Hiển thị ${range[0]}–${range[1]} / Tổng cộng ${total} hiện vật`,
             defaultPageSize: 10,
           }}
           onRow={(record) => ({
@@ -387,14 +376,13 @@ const QuanLyBaiViet = () => {
         />
       </div>
 
-      {/* Modal thêm mới */}
       <Modal
         title={
           isViewMode
-            ? 'Chi tiết bài viết'
+            ? 'Chi tiết hiện vật'
             : selectedRecord
-              ? 'Chỉnh sửa bài viết'
-              : 'Thêm mới bài viết'
+              ? 'Chỉnh sửa hiện vật'
+              : 'Thêm mới hiện vật'
         }
         visible={isModalVisible}
         onCancel={handleCancel}
@@ -411,47 +399,29 @@ const QuanLyBaiViet = () => {
         width={800}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-            <Input disabled={isViewMode} />
-          </Form.Item>
-
-          <Form.Item name="category" label="Danh mục">
-            <Select disabled={isViewMode} allowClear>
-              <Select.Option value="Tin tức">Tin tức</Select.Option>
-              <Select.Option value="Sự kiện">Sự kiện</Select.Option>
-            </Select>
-          </Form.Item>
-
           <Form.Item
-            name="content"
-            label="Nội dung"
+            name="name"
+            label="Tên hiện vật"
             rules={[{ required: true }]}
           >
-            <ReactQuill readOnly={isViewMode} theme="snow" />
-          </Form.Item>
-
-          <Form.Item name="is_highlight" valuePropName="checked">
-            <Checkbox disabled={isViewMode}>Nổi bật</Checkbox>
-          </Form.Item>
-
-          <Form.Item name="excerpt" label="Tóm tắt">
-            <ReactQuill readOnly={isViewMode} theme="snow" />
-          </Form.Item>
-
-          <Form.Item name="author" label="Tác giả">
             <Input disabled={isViewMode} />
           </Form.Item>
 
-          <Form.Item name="author_bio" label="Tiểu sử tác giả">
+          <Form.Item name="period" label="Giai đoạn lịch sử">
             <Input disabled={isViewMode} />
           </Form.Item>
 
-          <Form.Item name="image" label="Ảnh">
+          <Form.Item name="location" label="Nơi lưu trữ">
+            <Input disabled={isViewMode} />
+          </Form.Item>
+
+          <Form.Item name="image" label="Ảnh đại diện">
             <Upload
               name="image"
               action="/upload.do"
               listType="picture"
-              defaultFileList={form.getFieldValue('image') || []} // 👈 Hiển thị ảnh đã upload
+              maxCount={1}
+              defaultFileList={form.getFieldValue('image') || []}
             >
               <Button icon={<UploadOutlined />} disabled={isViewMode}>
                 Tải ảnh lên
@@ -459,15 +429,36 @@ const QuanLyBaiViet = () => {
             </Upload>
           </Form.Item>
 
-          <Form.Item name="image_caption" label="Chú thích ảnh">
-            <Input disabled={isViewMode} />
+          <Form.Item name="category_artifact" label="Loại hiện vật">
+            <Select
+              disabled={isViewMode}
+              allowClear
+              placeholder="Chọn loại hiện vật"
+            >
+              <Select.Option value="Hiện vật khảo cổ">
+                Hiện vật khảo cổ
+              </Select.Option>
+              <Select.Option value="Tư liệu lịch sử">
+                Tư liệu lịch sử
+              </Select.Option>
+              <Select.Option value="Tư liệu địa lý">
+                Tư liệu địa lý
+              </Select.Option>
+              <Select.Option value="Hiện vật văn hóa">
+                Hiện vật văn hóa
+              </Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="isFeatured" valuePropName="checked">
+            <Checkbox disabled={isViewMode}>Nổi bật</Checkbox>
           </Form.Item>
 
           <Form.Item name="audio" label="Tệp âm thanh">
             <Upload
               name="audio"
               action="/upload.do"
-              defaultFileList={form.getFieldValue('audio') || []} // 👈 Hiển thị audio đã upload
+              defaultFileList={form.getFieldValue('audio') || []}
             >
               <Button icon={<UploadOutlined />} disabled={isViewMode}>
                 Tải tệp âm thanh lên
@@ -475,26 +466,47 @@ const QuanLyBaiViet = () => {
             </Upload>
           </Form.Item>
 
-          <Form.Item name="tag" label="Tag">
-            <Select disabled={isViewMode} allowClear>
-              <Select.Option value="Một">Một</Select.Option>
-              <Select.Option value="Hai">Hai</Select.Option>
-            </Select>
+          <Form.Item name="history" label="Lịch sử hiện vật">
+            <ReactQuill readOnly={isViewMode} theme="snow" />
           </Form.Item>
 
-          <Form.Item name="created_by" label="Người tạo">
+          <Form.Item name="historicalSignificance" label="Giá trị lịch sử">
+            <ReactQuill readOnly={isViewMode} theme="snow" />
+          </Form.Item>
+
+          <Form.Item name="year" label="Tuổi hiện vật">
+            <InputNumber min={0} disabled={isViewMode} />
+          </Form.Item>
+
+          <Form.Item name="images" label="Thư viện ảnh">
+            <Upload
+              name="images"
+              action="/upload.do"
+              listType="picture"
+              multiple
+              defaultFileList={form.getFieldValue('images') || []}
+            >
+              <Button icon={<UploadOutlined />} disabled={isViewMode}>
+                Tải nhiều ảnh
+              </Button>
+            </Upload>
+          </Form.Item>
+
+          <Form.Item name="description" label="Mô tả chi tiết">
+            <ReactQuill readOnly={isViewMode} theme="snow" />
+          </Form.Item>
+
+          <Form.Item name="user" label="Người tạo">
             <Input disabled />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* CSS nội bộ */}
       <style jsx>{`
         .container {
           padding: 20px;
         }
 
-        /* Vùng 1: Header */
         .header {
           position: relative;
           text-align: center;
@@ -517,7 +529,6 @@ const QuanLyBaiViet = () => {
           z-index: -1;
         }
 
-        /* Vùng 2: Tìm kiếm */
         .search-box {
           background: white;
           padding: 20px;
@@ -530,12 +541,11 @@ const QuanLyBaiViet = () => {
 
         .search-container {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr auto;
+          grid-template-columns: 1fr 1fr auto;
           gap: 10px;
           align-items: center;
         }
 
-        /* Vùng 3: Nút chức năng + Lưới */
         .content {
           background: white;
           padding: 20px;
@@ -550,13 +560,11 @@ const QuanLyBaiViet = () => {
           margin-bottom: 10px;
         }
 
-        /* Căn giữa nội dung trong bảng */
         :global(.ant-table td),
         :global(.ant-table th) {
           text-align: center !important;
         }
 
-        /* Căn trái nội dung cột Tiêu đề */
         :global(.ant-table td:nth-child(1)),
         :global(.ant-table th:nth-child(1)) {
           text-align: left !important;
@@ -575,4 +583,4 @@ const QuanLyBaiViet = () => {
   );
 };
 
-export default QuanLyBaiViet;
+export default QuanLyHienVat;
