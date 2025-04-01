@@ -1,23 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {Button,
-  Table,
-  Input,
-  Select,
-  Tag,
-  Modal,
-  Form,
-  message,
-  Checkbox,
-} from 'antd';
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  SearchOutlined,
-  EyeOutlined,
-} from '@ant-design/icons';
+import {Button,Table,Input,Select,Tag,Modal,Form,message,Checkbox} from 'antd';
+import {PlusOutlined,EditOutlined,DeleteOutlined,SearchOutlined,EyeOutlined,} from '@ant-design/icons';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Upload } from 'antd';

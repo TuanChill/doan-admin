@@ -344,6 +344,7 @@ const QuanLyVe = () => {
             selectedRecord && selectedRecord.key === record.key
               ? 'selected-row'
               : ''
+          }
           pagination={{
             pageSizeOptions: ['10', '20', '50'],
             showSizeChanger: true,
