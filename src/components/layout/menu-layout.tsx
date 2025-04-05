@@ -4,9 +4,6 @@ import { SideMenu } from '@/components/layout/side-menu';
 import { ReactNode, useState } from 'react';
 import { useLayoutStore } from '@/stores/use-layout-store';
 import { PanelLeft } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { APP_URL } from '@/const/routes';
-import { Button } from '@/components/common/button';
 type Props = {
   children: ReactNode;
 };
@@ -14,9 +11,7 @@ type Props = {
 const MenuLayout = ({ children }: Props) => {
   const [showMenu, setShowMenu] = useState(true);
 
-  const { setIsImportTokenModal } = useLayoutStore();
   const { currentTab } = useLayoutStore();
-  const pathName = usePathname();
 
   const handleMenu = () => {
     setShowMenu((prev) => !prev);
@@ -44,15 +39,6 @@ const MenuLayout = ({ children }: Props) => {
               </div>
               <h2 className="text-head-sm">{currentTab}</h2>
             </div>
-            {/* import token */}
-            {pathName === APP_URL.MANAGEMENT.TOKEN_MANAGEMENT && (
-              <Button
-                className="text-subhead-sm w-fit px-5 py-2.5"
-                onClick={() => setIsImportTokenModal(true)}
-              >
-                Import Token
-              </Button>
-            )}
           </div>
           <main className="h-full w-full overflow-y-auto !bg-transparent">
             {children}

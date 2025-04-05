@@ -4,11 +4,11 @@ import { APP_URL } from '@/const/routes';
 import {
   Bolt,
   Coins,
-  House,
   LogOut,
   MoreVertical,
   RectangleEllipsis,
   Wallet,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -29,6 +29,7 @@ interface MenuItem {
   subItems: { key: string; label: string; class: string; isAllowed: boolean }[];
   class: string;
   isAllowed?: boolean;
+  path?: string;
 }
 type Props = {
   isShowing: boolean;
@@ -52,58 +53,26 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
 
   const menuItems: MenuItem[] = useMemo(() => {
     return [
-      //   {
-      //     key: 'dashboard',
-      //     label: 'Bảng điều khiển',
-      //     icon: '/images/dashboard.png',
-      //     subItems: [],
-      //     class: '',
-      //     isAllowed: false,
-      //   },
       {
-        key: 'price-marker',
-        label: 'Price Marker',
-        icon: <House />,
+        key: 'users',
+        label: 'Người dùng',
+        icon: <Users />,
         subItems: [],
         class: '',
         isAllowed: true,
       },
       {
-        key: 'token-management',
-        label: 'Token Management',
+        key: 'exhibits',
+        label: 'Hiện vật',
         icon: <Coins />,
         subItems: [],
         class: '',
         isAllowed: true,
       },
       {
-        key: 'binance-configuration',
-        label: 'Binance Configuration',
+        key: 'invoices',
+        label: 'Hoá đơn',
         icon: <Bolt />,
-        subItems: [],
-        class: '',
-        isAllowed: true,
-      },
-      {
-        key: 'cex-withdrawal',
-        label: 'CEX Withdrawal',
-        icon: <Bolt />,
-        subItems: [],
-        class: '',
-        isAllowed: true,
-      },
-      {
-        key: 'sell-wallet',
-        label: 'Sell Wallet',
-        icon: <Wallet />,
-        subItems: [],
-        class: '',
-        isAllowed: true,
-      },
-      {
-        key: 'wallets-list',
-        label: 'Wallets List',
-        icon: <Wallet />,
         subItems: [],
         class: '',
         isAllowed: true,
@@ -111,25 +80,17 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
     ];
   }, []);
 
-  const handleItemClick = (itemKey: string) => {
-    // setSelectedItem(itemKey);
+  const handleItemClick = (itemKey: string, itemPath?: string) => {
+    if (itemPath) {
+      router.push(itemPath);
+      return;
+    }
+
     setCurrentTab(itemKey);
     router.push(`/management/${itemKey}`);
   };
 
-  // const handleLogout = () => {
-  //   clear()
-  //   router.push(APP_URL.LOGIN)
-  //   showSuccess('Thành công', 'Đăng xuất thành công')
-  // }
-
   const actions = [
-    // {
-    //   icon: <User2Icon size={20} color="black" />,
-    //   label: "Thông tin người dùng",
-    //   // onClick: handleUserInformation,
-    //   className: "w-[209] h-10 text-black",
-    // },
     {
       icon: <RectangleEllipsis size={20} />,
       label: 'Change password',
@@ -206,15 +167,17 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
             {menuItems
               .filter((menuItem) => menuItem.isAllowed)
               .map((menuItem) => {
+                const isActive =
+                  pathname === (menuItem.path || '/management/' + menuItem.key);
                 return (
                   <li
                     key={menuItem.key}
                     onClick={() =>
                       menuItem.subItems.length === 0 &&
-                      handleItemClick(menuItem.key)
+                      handleItemClick(menuItem.key, menuItem.path)
                     }
                     className={cn(
-                      pathname === '/management/' + menuItem.key &&
+                      isActive &&
                         'rounded-l-lg border-r-[4px] border-light-blue-40 bg-[#363637]',
                       menuItem.class +
                         ' mt-2 cursor-pointer hover:rounded-lg hover:bg-dark-gray-70'
@@ -236,7 +199,6 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
                           )}
                         >
                           <div className="text-gray-0 flex items-center gap-4">
-                            {/* <img src={menuItem.icon} alt="" /> */}
                             {menuItem.icon}
                             {isShowing && (
                               <div className="text-subhead-sm">
@@ -269,7 +231,6 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
                       </details>
                     ) : (
                       <div className="text-gray-0 flex items-center gap-3 px-3">
-                        {/* <img src={menuItem.icon} alt="" /> */}
                         {menuItem.icon}
                         <summary className="text-sm font-medium">
                           {isShowing && (
@@ -300,7 +261,7 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
             className="!dropdown-top !dropdown-content"
             interClassName="absolute left-20 bottom-20"
           >
-            <div className="flex items-center gap-x-5 p-4">
+            <div className="flex items-center gap-x-5 overflow-hidden p-4">
               <div className="flex w-full items-center gap-3">
                 <div className="bg-blue-8000 flex h-[36px] w-[36px] min-w-[36px] items-center justify-center rounded-full text-white">
                   Aa
