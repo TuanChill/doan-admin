@@ -84,11 +84,11 @@ const CategoryArtifactManagement = () => {
         (category: any) => ({
           id: category.id,
           key: category.id.toString(),
-          name: category.attributes.name,
-          orderIndex: category.attributes.orderIndex || 0,
-          description: category.attributes.description || '',
-          exhibits: category.attributes.exhibits?.data || [],
-          exhibits_count: category.attributes.exhibits?.data?.length || 0,
+          name: category.name,
+          orderIndex: category.orderIndex || 0,
+          description: category.description || '',
+          exhibits: category.exhibits || [],
+          exhibits_count: category.exhibits?.length || 0,
         })
       );
 

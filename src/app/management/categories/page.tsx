@@ -79,10 +79,10 @@ const CategoriesManagement = () => {
         (category: any) => ({
           id: category.id,
           key: category.id.toString(),
-          name: category.attributes.name,
-          index: category.attributes.index || 0,
-          posts: category.attributes.posts?.data || [],
-          posts_count: category.attributes.posts?.data?.length || 0,
+          name: category.name,
+          index: category.index || 0,
+          posts: category.posts || [],
+          posts_count: category.posts?.length || 0,
         })
       );
 
