@@ -21,5 +21,7 @@ export const API_ROUTES = {
   POST: `${API_BASE}/posts`,
   HISTORY_SEARCH: `${API_BASE}/history-searches`,
   INVOICE: `${API_BASE}/invoices`,
+  INVOICE_DETAIL: `${API_BASE}/invoice-details`,
+  EMAIL_SERVICE: `${API_BASE}/email`,
   ACTIVITY_POINTS: `${API_BASE}/actions`,
 };

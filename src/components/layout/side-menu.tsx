@@ -66,7 +66,20 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
         key: 'posts',
         label: 'Bài viết',
         icon: <FileText />,
-        subItems: [],
+        subItems: [
+          {
+            key: 'posts',
+            label: 'Quản lý bài viết',
+            class: 'px-4 py-2',
+            isAllowed: true,
+          },
+          {
+            key: 'categories',
+            label: 'Quản lý danh mục',
+            class: 'px-4 py-2',
+            isAllowed: true,
+          },
+        ],
         class: '',
         isAllowed: true,
       },
@@ -82,7 +95,20 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
         key: 'exhibits',
         label: 'Hiện vật',
         icon: <Coins />,
-        subItems: [],
+        subItems: [
+          {
+            key: 'exhibits',
+            label: 'Quản lý hiện vật',
+            class: 'px-4 py-2',
+            isAllowed: true,
+          },
+          {
+            key: 'category-artifacts',
+            label: 'Quản lý loại hiện vật',
+            class: 'px-4 py-2',
+            isAllowed: true,
+          },
+        ],
         class: '',
         isAllowed: true,
       },
