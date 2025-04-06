@@ -17,6 +17,7 @@ import { login } from '@/request/auth';
 import { useUserStore } from '@/stores/user-store';
 import { useRouter } from 'next/navigation';
 import { useSnackBarStore, SnackbarTypes } from '@/stores/snackbar-store';
+import { get } from 'lodash';
 
 export default function AdminLoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -38,10 +39,17 @@ export default function AdminLoginPage() {
       setIsLoading(true);
       const response = await login(identifier, password);
 
+      if (get(response, 'permission')) {
+        snackbar.error(
+          'Error',
+          'You are not authorized to access this application'
+        );
+        return;
+      }
       if (response.jwt && response.user) {
         setAuth(response.user, response.jwt);
         snackbar.success('Success', 'Logged in successfully');
-        router.push('/dashboard');
+        router.push('/management/users');
       } else {
         throw new Error('Invalid response from server');
       }

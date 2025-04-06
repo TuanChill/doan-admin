@@ -146,20 +146,10 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
             </div>
           )}
           {isShowing && (
-            <div className="flex items-center justify-between px-4 py-3 text-white">
-              <ComboboxCoin
-                coins={[
-                  {
-                    id: '1',
-                    name: 'Bitcoin',
-                    symbol: 'BTC',
-                    image:
-                      'https://boolean-dev.s3.ap-southeast-1.amazonaws.com/BTC.png',
-                  },
-                ]}
-                defaultValue="Bitcoin"
-                onChange={() => {}}
-              />
+            <div className="flex items-center justify-between rounded-sm bg-gradient-to-r from-dark-gray-70 to-dark-gray-80 px-4 py-3 font-medium tracking-wide text-white shadow-sm">
+              <span className="truncate text-lg transition-colors duration-200 hover:text-light-blue-40">
+                Hệ thống quản lý bảo tàng
+              </span>
             </div>
           )}
           <Divider />

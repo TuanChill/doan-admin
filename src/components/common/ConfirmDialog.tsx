@@ -34,10 +34,10 @@ export default function ConfirmDialog({
         </DialogHeader>
         <DialogFooter className="flex justify-end space-x-2 pt-4">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Hủy
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
-            Confirm
+            Xác nhận
           </Button>
         </DialogFooter>
       </DialogContent>
