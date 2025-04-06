@@ -15,7 +15,7 @@ export default function LoginLayout({
     if (isAuthenticated()) {
       redirect('/management/users');
     }
-  }, [isAuthenticated()]);
+  }, [isAuthenticated]);
 
   return <>{children}</>;
 }

@@ -25,6 +25,12 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { User, getUsers, deleteUser } from '@/request/users';
 import { Input } from '@/components/ui/input';
 
+// Interface for API response format
+interface UserResponse {
+  id: number | string;
+  attributes?: User;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,8 +45,6 @@ export default function UsersPage() {
   const [limit] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [error, setError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
   const snackbar = useSnackBarStore();
 
   // Add debounce for search
@@ -54,63 +58,60 @@ export default function UsersPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const fetchUsers = async (
-    pageNumber = page,
-    searchTerm = debouncedSearchQuery
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getUsers(pageNumber, limit, searchTerm);
+  const fetchUsers = useCallback(
+    async (pageNumber = page, searchTerm = debouncedSearchQuery) => {
+      try {
+        setLoading(true);
+        const response = await getUsers(pageNumber, limit, searchTerm);
 
-      if (response) {
-        const processedUsers = response.map((user: any) => {
-          if (user.attributes) {
-            return {
-              id: user.id,
-              ...user.attributes,
-            };
+        if (response) {
+          const processedUsers = response.map((user: UserResponse) => {
+            if (user.attributes) {
+              return {
+                id: user.id,
+                ...user.attributes,
+              };
+            }
+            // Nếu dữ liệu đã được flatten
+            return user as User;
+          });
+
+          setUsers(processedUsers);
+          console.log('Dữ liệu đã xử lý:', processedUsers);
+
+          // Handle pagination meta
+          if (response.meta && response.meta.pagination) {
+            setTotalItems(response.meta.pagination.total);
+            setTotalPages(response.meta.pagination.pageCount);
+            console.log('Thông tin phân trang:', response.meta.pagination);
+          } else {
+            // Mặc định nếu không có thông tin phân trang
+            setTotalItems(processedUsers.length);
+            setTotalPages(1);
           }
-          // Nếu dữ liệu đã được flatten
-          return user;
-        });
-
-        setUsers(processedUsers);
-        console.log('Dữ liệu đã xử lý:', processedUsers);
-
-        // Handle pagination meta
-        if (response.meta && response.meta.pagination) {
-          setTotalItems(response.meta.pagination.total);
-          setTotalPages(response.meta.pagination.pageCount);
-          console.log('Thông tin phân trang:', response.meta.pagination);
         } else {
-          // Mặc định nếu không có thông tin phân trang
-          setTotalItems(processedUsers.length);
+          console.warn('Không có dữ liệu trả về từ API');
+          setUsers([]);
+          setTotalItems(0);
           setTotalPages(1);
         }
-      } else {
-        console.warn('Không có dữ liệu trả về từ API');
+      } catch (error: any) {
+        console.error('Error fetching users:', error);
+        snackbar.error('Lỗi', 'Không thể tải danh sách tài khoản');
         setUsers([]);
         setTotalItems(0);
         setTotalPages(1);
-        setError('Không có dữ liệu trả về từ API');
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      console.error('Error fetching users:', error);
-      snackbar.error('Lỗi', 'Không thể tải danh sách tài khoản');
-      setUsers([]);
-      setTotalItems(0);
-      setTotalPages(1);
-      setError(error.message || 'Không thể tải danh sách tài khoản');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [page, debouncedSearchQuery, limit, snackbar]
+  );
 
   // Fetch users on page change, search query change
   useEffect(() => {
     fetchUsers(page, debouncedSearchQuery);
-  }, [page, debouncedSearchQuery]);
+  }, [page, debouncedSearchQuery, fetchUsers]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {

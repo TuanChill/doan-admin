@@ -1,4 +1,4 @@
-import { fdAxios } from "@/config/axios.config";
+import { fdAxios } from '@/config/axios.config';
 import { API_ROUTES } from '@/const/routes';
 import qs from 'qs';
 
@@ -35,58 +35,55 @@ export const getUsers = async (
   // Tạo đối tượng filter ban đầu
   let filtersObj: any = {
     permission: {
-      $eq: 'user'
-    }
+      $eq: 'user',
+    },
   };
 
   // Chỉ thêm điều kiện tìm kiếm nếu có search term
   if (search && search.trim() !== '') {
     // Tạo mảng $or cho nhiều điều kiện tìm kiếm
     const searchConditions = [];
-    
+
     // Thêm điều kiện tìm kiếm email
     searchConditions.push({
       email: {
-        $containsi: search
-      }
+        $containsi: search,
+      },
     });
-    
+
     // Thêm điều kiện tìm kiếm fullName
     searchConditions.push({
       fullName: {
-        $containsi: search
-      }
+        $containsi: search,
+      },
     });
-    
+
     // Thêm điều kiện tìm kiếm phoneNumber
     searchConditions.push({
       phoneNumber: {
-        $containsi: search
-      }
+        $containsi: search,
+      },
     });
-    
+
     // Ghép với filter permission
     filtersObj = {
-      $and: [
-        { permission: { $eq: 'user' } },
-        { $or: searchConditions }
-      ]
+      $and: [{ permission: { $eq: 'user' } }, { $or: searchConditions }],
     };
   }
 
   const query = {
     pagination: {
       page,
-      pageSize: limit
+      pageSize: limit,
     },
     filters: filtersObj,
-    sort: ['updatedAt:desc']
+    sort: ['updatedAt:desc'],
   };
-  
+
   console.log('Query đầy đủ:', JSON.stringify(query, null, 2));
-  
+
   const params = qs.stringify(query, {
-    encodeValuesOnly: true
+    encodeValuesOnly: true,
   });
 
   try {
@@ -107,29 +104,35 @@ export const getUserById = async (id: number) => {
 };
 
 // Fetch user's point history (actions)
-export const getUserActions = async (userId: number, page: number = 1, limit: number = 10) => {
+export const getUserActions = async (
+  userId: number,
+  page: number = 1,
+  limit: number = 10
+) => {
   const query = {
     filters: {
       user: {
         id: {
-          $eq: userId
-        }
-      }
+          $eq: userId,
+        },
+      },
     },
     populate: ['ticket'],
     pagination: {
       page,
-      pageSize: limit
+      pageSize: limit,
     },
-    sort: ['createdAt:desc']
+    sort: ['createdAt:desc'],
   };
-  
+
   const params = qs.stringify(query, {
-    encodeValuesOnly: true
+    encodeValuesOnly: true,
   });
 
   try {
-    const response = await fdAxios.get(`${API_ROUTES.ACTIVITY_POINTS}?${params}`);
+    const response = await fdAxios.get(
+      `${API_ROUTES.ACTIVITY_POINTS}?${params}`
+    );
     return response.data;
   } catch (error) {
     console.error('Lỗi khi lấy lịch sử điểm của người dùng:', error);
@@ -140,7 +143,7 @@ export const getUserActions = async (userId: number, page: number = 1, limit: nu
 // Create a new user
 export const createUser = async (userData: User) => {
   const response = await fdAxios.post(API_ROUTES.USERS, {
-    data: userData
+    data: userData,
   });
   return response.data;
 };
@@ -148,7 +151,7 @@ export const createUser = async (userData: User) => {
 // Update a user
 export const updateUser = async (id: number, userData: Partial<User>) => {
   const response = await fdAxios.put(`${API_ROUTES.USERS}/${id}`, {
-    data: userData
+    data: userData,
   });
   return response.data;
 };
@@ -157,4 +160,4 @@ export const updateUser = async (id: number, userData: Partial<User>) => {
 export const deleteUser = async (id: number) => {
   const response = await fdAxios.delete(`${API_ROUTES.USERS}/${id}`);
   return response.data;
-}; 
+};

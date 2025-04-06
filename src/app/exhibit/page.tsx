@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Table,
@@ -22,11 +22,27 @@ import {
   EyeOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import type { ColumnType } from 'antd/es/table';
+import type { UploadFile } from 'antd/es/upload/interface';
+import DynamicReactQuill from '@/components/DynamicReactQuill';
+
+interface ExhibitRecord {
+  key: string;
+  name: string;
+  isFeatured: string;
+  category_artifact: string;
+  period: string;
+  user: string;
+  create_at: string;
+  update_at: string;
+  image?: UploadFile[];
+  audio?: UploadFile[];
+  images?: UploadFile[];
+}
 
 const QuanLyHienVat = () => {
-  const [data, setData] = useState([
+  const [mounted, setMounted] = useState(false);
+  const [data, setData] = useState<ExhibitRecord[]>([
     {
       key: '1',
       name: 'Trống đồng Đông Sơn',
@@ -61,14 +77,24 @@ const QuanLyHienVat = () => {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedRecord, setSelectedRecord] = useState<ExhibitRecord | null>(
+    null
+  );
   const [isViewMode, setIsViewMode] = useState(false);
-  const currentUser = localStorage.getItem('username') || 'admin';
+  const [currentUser, setCurrentUser] = useState('admin');
   const [searchFilters, setSearchFilters] = useState({
     name: '',
     category_artifact: '',
   });
-  const [filteredData, setFilteredData] = useState(data);
+  const [filteredData, setFilteredData] = useState<ExhibitRecord[]>(data);
+
+  useEffect(() => {
+    setMounted(true);
+    const username = localStorage.getItem('username');
+    if (username) {
+      setCurrentUser(username);
+    }
+  }, []);
 
   const showModal = () => {
     setSelectedRecord(null);
@@ -180,7 +206,8 @@ const QuanLyHienVat = () => {
         );
 
         const sortedData = updatedData.sort(
-          (a, b) => new Date(b.update_at) - new Date(a.update_at)
+          (a, b) =>
+            new Date(b.update_at).getTime() - new Date(a.update_at).getTime()
         );
 
         setData(sortedData);
@@ -201,7 +228,8 @@ const QuanLyHienVat = () => {
 
         const newDataList = [...data, newData];
         const sortedData = newDataList.sort(
-          (a, b) => new Date(b.create_at) - new Date(a.create_at)
+          (a, b) =>
+            new Date(b.create_at).getTime() - new Date(a.create_at).getTime()
         );
 
         setData(sortedData);
@@ -215,13 +243,14 @@ const QuanLyHienVat = () => {
     });
   };
 
-  const columns = [
+  const columns: ColumnType<ExhibitRecord>[] = [
     {
       title: 'Tên hiện vật',
       dataIndex: 'name',
       key: 'name',
       align: 'left',
-      sorter: (a, b) => a.name.localeCompare(b.name),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        a.name.localeCompare(b.name),
       showSorterTooltip: false,
     },
     {
@@ -229,7 +258,8 @@ const QuanLyHienVat = () => {
       dataIndex: 'category_artifact',
       key: 'category_artifact',
       align: 'left',
-      sorter: (a, b) => a.category_artifact.localeCompare(b.category_artifact),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        a.category_artifact.localeCompare(b.category_artifact),
       showSorterTooltip: false,
     },
     {
@@ -237,7 +267,8 @@ const QuanLyHienVat = () => {
       dataIndex: 'period',
       key: 'period',
       align: 'left',
-      sorter: (a, b) => a.period.localeCompare(b.period),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        a.period.localeCompare(b.period),
       showSorterTooltip: false,
     },
     {
@@ -245,9 +276,10 @@ const QuanLyHienVat = () => {
       dataIndex: 'isFeatured',
       key: 'isFeatured',
       align: 'center',
-      sorter: (a, b) => a.isFeatured.localeCompare(b.isFeatured),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        a.isFeatured.localeCompare(b.isFeatured),
       showSorterTooltip: false,
-      render: (text) => (
+      render: (text: string) => (
         <Tag
           style={{
             borderRadius: '8px',
@@ -275,7 +307,8 @@ const QuanLyHienVat = () => {
       dataIndex: 'create_at',
       key: 'create_at',
       align: 'center',
-      sorter: (a, b) => new Date(a.create_at) - new Date(b.create_at),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        new Date(a.create_at).getTime() - new Date(b.create_at).getTime(),
       showSorterTooltip: false,
     },
     {
@@ -283,10 +316,13 @@ const QuanLyHienVat = () => {
       dataIndex: 'update_at',
       key: 'update_at',
       align: 'center',
-      sorter: (a, b) => new Date(a.update_at) - new Date(b.update_at),
+      sorter: (a: ExhibitRecord, b: ExhibitRecord) =>
+        new Date(a.update_at).getTime() - new Date(b.update_at).getTime(),
       showSorterTooltip: false,
     },
   ];
+
+  if (!mounted) return null;
 
   return (
     <div className="container">
@@ -467,11 +503,11 @@ const QuanLyHienVat = () => {
           </Form.Item>
 
           <Form.Item name="history" label="Lịch sử hiện vật">
-            <ReactQuill readOnly={isViewMode} theme="snow" />
+            <DynamicReactQuill readOnly={isViewMode} theme="snow" />
           </Form.Item>
 
           <Form.Item name="historicalSignificance" label="Giá trị lịch sử">
-            <ReactQuill readOnly={isViewMode} theme="snow" />
+            <DynamicReactQuill readOnly={isViewMode} theme="snow" />
           </Form.Item>
 
           <Form.Item name="year" label="Tuổi hiện vật">
@@ -493,7 +529,7 @@ const QuanLyHienVat = () => {
           </Form.Item>
 
           <Form.Item name="description" label="Mô tả chi tiết">
-            <ReactQuill readOnly={isViewMode} theme="snow" />
+            <DynamicReactQuill readOnly={isViewMode} theme="snow" />
           </Form.Item>
 
           <Form.Item name="user" label="Người tạo">

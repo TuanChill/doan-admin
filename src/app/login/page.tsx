@@ -16,7 +16,7 @@ import { FormEvent, useState } from 'react';
 import { login } from '@/request/auth';
 import { useUserStore } from '@/stores/user-store';
 import { useRouter } from 'next/navigation';
-import { useSnackBarStore, SnackbarTypes } from '@/stores/snackbar-store';
+import { useSnackBarStore } from '@/stores/snackbar-store';
 import { get } from 'lodash';
 
 export default function AdminLoginPage() {

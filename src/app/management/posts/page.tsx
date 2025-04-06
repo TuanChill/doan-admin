@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Table,
@@ -19,10 +19,10 @@ import {
   SearchOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
+import DynamicReactQuill from '@/components/DynamicReactQuill';
 
 interface PostRecord {
   key: string;
@@ -33,13 +33,14 @@ interface PostRecord {
   user: string;
   create_at: string;
   update_at: string;
-  image?: any[];
-  audio?: any[];
+  image?: UploadFile[];
+  audio?: UploadFile[];
   content?: string;
   created_by?: string;
 }
 
 const PostsManagement = () => {
+  const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<PostRecord[]>([
     {
       key: '1',
@@ -77,13 +78,22 @@ const PostsManagement = () => {
   const [form] = Form.useForm(); // Form instance
   const [selectedRecord, setSelectedRecord] = useState<PostRecord | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
-  const currentUser = localStorage.getItem('username') || 'admin'; //  Lấy tên user đăng nhập
+  const [currentUser, setCurrentUser] = useState('admin');
   const [searchFilters, setSearchFilters] = useState({
     title: '',
     category: '',
     is_highlight: '',
   });
   const [filteredData, setFilteredData] = useState<PostRecord[]>(data);
+
+  // Safe access to localStorage after component is mounted
+  useEffect(() => {
+    setMounted(true);
+    const username = localStorage.getItem('username');
+    if (username) {
+      setCurrentUser(username);
+    }
+  }, []);
 
   // Hàm hiển thị modal thêm mới
   const showModal = () => {
@@ -179,8 +189,6 @@ const PostsManagement = () => {
   // Hàm xử lý khi nhấn nút Lưu
   const handleSave = () => {
     form.validateFields().then((values) => {
-      const currentUser = localStorage.getItem('username') || 'admin';
-
       const imageFile = values.image?.fileList || [];
       const audioFile = values.audio?.fileList || [];
 
@@ -280,6 +288,9 @@ const PostsManagement = () => {
       key: 'update_at',
     },
   ];
+
+  // Add check before rendering
+  if (!mounted) return null;
 
   return (
     <div className="container mx-auto py-6">
@@ -451,7 +462,7 @@ const PostsManagement = () => {
             label="Nội dung"
             rules={[{ required: true, message: 'Vui lòng nhập nội dung!' }]}
           >
-            <ReactQuill theme="snow" style={{ height: 200 }} />
+            <DynamicReactQuill theme="snow" style={{ height: 200 }} />
           </Form.Item>
 
           <Form.Item name="image" label="Hình ảnh">

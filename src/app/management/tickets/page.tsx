@@ -1,17 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Button,
-  Table,
-  Input,
-  Select,
-  Tag,
-  Modal,
-  Form,
-  message,
-  Checkbox,
-} from 'antd';
+import { useState, useEffect } from 'react';
+import { Button, Table, Input, Select, Tag, Modal, Form, message } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
   EditOutlined,
@@ -19,13 +10,26 @@ import {
   SearchOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
+import type { UploadFile } from 'antd/es/upload/interface';
+import DynamicReactQuill from '@/components/DynamicReactQuill';
+
+interface TicketRecord {
+  key: string;
+  name: string;
+  price: string;
+  type: string;
+  description: string;
+  create_at: string;
+  update_at: string;
+  image?: UploadFile[];
+  created_by?: string;
+}
 
 const TicketsManagement = () => {
-  const [data, setData] = useState([
+  const [mounted, setMounted] = useState(false);
+  const [data, setData] = useState<TicketRecord[]>([
     {
       key: '1',
       name: 'Vé vào cổng người lớn',
@@ -60,14 +64,25 @@ const TicketsManagement = () => {
 
   const [isModalVisible, setIsModalVisible] = useState(false); // State để điều khiển hiển thị modal
   const [form] = Form.useForm(); // Form instance
-  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [selectedRecord, setSelectedRecord] = useState<TicketRecord | null>(
+    null
+  );
   const [isViewMode, setIsViewMode] = useState(false);
-  const currentUser = localStorage.getItem('username') || 'admin'; //  Lấy tên user đăng nhập
+  const [currentUser, setCurrentUser] = useState('admin');
   const [searchFilters, setSearchFilters] = useState({
     name: '',
     type: '',
   });
-  const [filteredData, setFilteredData] = useState(data);
+  const [filteredData, setFilteredData] = useState<TicketRecord[]>(data);
+
+  // Safe access to localStorage after component is mounted
+  useEffect(() => {
+    setMounted(true);
+    const username = localStorage.getItem('username');
+    if (username) {
+      setCurrentUser(username);
+    }
+  }, []);
 
   // Hàm hiển thị modal thêm mới
   const showModal = () => {
@@ -94,7 +109,7 @@ const TicketsManagement = () => {
   };
 
   const handleSearch = () => {
-    const filtered = data.filter((item) => {
+    const filtered = data.filter((item: TicketRecord) => {
       const matchesName = item.name
         .toLowerCase()
         .includes(searchFilters.name.trim().toLowerCase());
@@ -153,8 +168,6 @@ const TicketsManagement = () => {
   // Hàm xử lý khi nhấn nút Lưu
   const handleSave = () => {
     form.validateFields().then((values) => {
-      const currentUser = localStorage.getItem('username') || 'admin';
-
       const imageFile = values.image?.fileList || [];
 
       if (selectedRecord) {
@@ -172,7 +185,7 @@ const TicketsManagement = () => {
 
         //  Sắp xếp theo ngày cập nhật mới nhất
         const sortedData = updatedData.sort(
-          (a, b) =>
+          (a: TicketRecord, b: TicketRecord) =>
             new Date(b.update_at).getTime() - new Date(a.update_at).getTime()
         );
 
@@ -181,7 +194,7 @@ const TicketsManagement = () => {
         message.success('Cập nhật vé thành công');
       } else {
         //  Nếu thêm mới
-        const newData = {
+        const newData: TicketRecord = {
           key: (data.length + 1).toString(),
           ...values,
           created_by: values.created_by || currentUser,
@@ -193,7 +206,7 @@ const TicketsManagement = () => {
         const newDataList = [...data, newData];
         //  Sắp xếp theo ngày tạo mới nhất
         const sortedDataList = newDataList.sort(
-          (a, b) =>
+          (a: TicketRecord, b: TicketRecord) =>
             new Date(b.create_at).getTime() - new Date(a.create_at).getTime()
         );
 
@@ -208,7 +221,7 @@ const TicketsManagement = () => {
   };
 
   // Định nghĩa các cột cho Table
-  const columns = [
+  const columns: ColumnsType<TicketRecord> = [
     {
       title: 'Tên vé',
       dataIndex: 'name',
@@ -245,6 +258,9 @@ const TicketsManagement = () => {
       key: 'update_at',
     },
   ];
+
+  // Add check before rendering
+  if (!mounted) return null;
 
   return (
     <div className="container mx-auto py-6">
@@ -399,7 +415,7 @@ const TicketsManagement = () => {
             label="Mô tả"
             rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
           >
-            <ReactQuill theme="snow" style={{ height: 120 }} />
+            <DynamicReactQuill theme="snow" style={{ height: 120 }} />
           </Form.Item>
 
           <Form.Item name="image" label="Hình ảnh">

@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable */
 import { DEFAULT_DOCS_PER_PAGE, DOCS_PER_PAGE_OPTIONS } from '@/const/default';
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
+  ColumnDef,
+  Row,
 } from '@tanstack/react-table';
 import { cloneDeep } from 'lodash';
 import { ChevronLeft, ChevronRight, CircleCheck } from 'lucide-react';
@@ -20,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { createArrayFrom1ToN } from '@/util/helper';
 
+// Generic type parameter for the data type
 type Props = {
   data: any[];
   columns: any[];
@@ -102,7 +105,7 @@ export const CommonTable = ({
 
   const rowSelectionColumn = {
     id: 'select',
-    header: ({ table }: any) => (
+    header: ({ table }: { table: any }) => (
       <IndeterminateCheckbox
         {...{
           checked: table.getIsAllRowsSelected(),
@@ -111,7 +114,7 @@ export const CommonTable = ({
         }}
       />
     ),
-    cell: ({ row }: any) => (
+    cell: ({ row }: { row: any }) => (
       <IndeterminateCheckbox
         {...{
           checked: row.getIsSelected(),
@@ -126,7 +129,7 @@ export const CommonTable = ({
 
   const indexColumn = {
     header: 'STT',
-    cell: ({ row }: any) => <span>{row.index + 1}</span>,
+    cell: ({ row }: { row: any }) => <span>{row.index + 1}</span>,
   };
 
   const renderedColumns = (): any[] => {
@@ -200,22 +203,19 @@ export const CommonTable = ({
 
   const handleNextPage = () => {
     if (!isLastPage) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      manualPagination ? onPageChange!(page! + 1) : table.nextPage();
+      manualPagination ? onPageChange?.(page! + 1) : table.nextPage();
     }
   };
 
   const handlePrevPage = () => {
     if (!isFirstPage) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      manualPagination ? onPageChange!(page! - 1) : table.previousPage();
+      manualPagination ? onPageChange?.(page! - 1) : table.previousPage();
     }
   };
 
   const handleRowClick = (row: any) => {
     onRowClick?.(row);
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    onSelect && onSelect?.(row.original);
+    if (onSelect) onSelect(row.original);
   };
 
   const pageOptions = useMemo(() => {
@@ -230,8 +230,7 @@ export const CommonTable = ({
   }, [manualPagination, table, totalPage]);
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    selectedRow && setRowSelection(selectedRow ?? {});
+    if (selectedRow) setRowSelection(selectedRow ?? {});
   }, [selectedRow]);
   const tableFooter = (
     <div className="bg-gray-5 mt-2 flex w-full text-sm font-normal text-gray-950">
@@ -249,11 +248,11 @@ export const CommonTable = ({
               : pagination.pageSize.toString()
           }
           onValueChange={(value) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            manualPagination
-              ? onPageSizeChange?.(parseInt(value))
-              : // : setPagination((prev) => set(prev, 'pageSize', value))
-                table.setPageSize(Number(value));
+            if (manualPagination) {
+              onPageSizeChange?.(parseInt(value));
+            } else {
+              table.setPageSize(Number(value));
+            }
           }}
         >
           <SelectTrigger className="h-[36px] gap-3 border border-dark-gray-60 bg-dark-gray-80 px-3 text-dark-gray-05">
@@ -291,13 +290,11 @@ export const CommonTable = ({
                 : (pagination.pageIndex + 1).toString()
             }
             onValueChange={(value) => {
-              // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-              manualPagination
-                ? onPageChange?.(parseInt(value))
-                : // : setPagination((prev) =>
-                  //     set(prev, 'pageIndex', parseInt(value) + 1)
-                  //   )
-                  table.setPageIndex(page);
+              if (manualPagination) {
+                onPageChange?.(parseInt(value));
+              } else {
+                table.setPageIndex(page);
+              }
             }}
           >
             <SelectTrigger className="border border-dark-gray-60 bg-dark-gray-80 text-dark-gray-05">
@@ -402,14 +399,15 @@ export const CommonTable = ({
                             cell.column.columnDef.cell,
                             cell.getContext()
                           )}
-                          {selectedRow && selectedRow[row.original.id] && (
-                            <CircleCheck
-                              className="ml-2"
-                              fill="white"
-                              stroke="blue"
-                              size={18}
-                            />
-                          )}
+                          {selectedRow &&
+                            selectedRow[row.original.id as number] && (
+                              <CircleCheck
+                                className="ml-2"
+                                fill="white"
+                                stroke="blue"
+                                size={18}
+                              />
+                            )}
                         </div>
                       </td>
                     ))}
