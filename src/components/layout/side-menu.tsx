@@ -4,10 +4,11 @@ import { APP_URL } from '@/const/routes';
 import {
   Bolt,
   Coins,
+  FileText,
   LogOut,
   MoreVertical,
   RectangleEllipsis,
-  Wallet,
+  Ticket,
   Users,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -57,6 +58,22 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
         key: 'users',
         label: 'Người dùng',
         icon: <Users />,
+        subItems: [],
+        class: '',
+        isAllowed: true,
+      },
+      {
+        key: 'posts',
+        label: 'Bài viết',
+        icon: <FileText />,
+        subItems: [],
+        class: '',
+        isAllowed: true,
+      },
+      {
+        key: 'tickets',
+        label: 'Vé',
+        icon: <Ticket />,
         subItems: [],
         class: '',
         isAllowed: true,
