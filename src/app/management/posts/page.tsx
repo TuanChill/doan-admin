@@ -22,7 +22,7 @@ import {
   DeleteOutlined,
   SearchOutlined,
   EyeOutlined,
-  UploadOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { API_ROUTES } from '@/const/routes';
@@ -33,6 +33,7 @@ import dayjs from 'dayjs';
 
 interface Post {
   id: number;
+  documentId: string;
   title: string;
   excerpt: string;
   date: string;
@@ -89,8 +90,8 @@ const PostsManagement = () => {
   const [isViewMode, setIsViewMode] = useState(false);
   const [searchFilters, setSearchFilters] = useState({
     title: '',
-    category: '',
-    isHighlight: '',
+    category: undefined,
+    isHighlight: undefined,
   });
   const [filteredData, setFilteredData] = useState<PostRecord[]>([]);
   const [imageFile, setImageFile] = useState<UploadFile[]>([]);
@@ -135,33 +136,35 @@ const PostsManagement = () => {
       const response = await fdAxios.get(`${API_ROUTES.POST}?${query}`);
       const postsData = response.data.data;
 
+      console.log(postsData);
+
       const formattedData: PostRecord[] = postsData.map((post: any) => {
-        const postData = post.attributes;
         return {
           id: post.id,
+          documentId: post.documentId || post.id.toString(),
           key: post.id.toString(),
-          title: postData.title || '',
-          excerpt: postData.excerpt || '',
-          date: postData.date || '',
-          author: postData.author || '',
-          authorBio: postData.authorBio || '',
-          view: postData.view || 0,
-          isHighlight: postData.isHighlight || false,
-          content: postData.content || { content: [] },
-          imageCaption: postData.imageCaption || '',
-          createdAt: postData.createdAt,
-          updatedAt: postData.updatedAt,
+          title: post.title || '',
+          excerpt: post.excerpt || '',
+          date: post.date || '',
+          author: post.author || '',
+          authorBio: post.authorBio || '',
+          view: post.view || 0,
+          isHighlight: post.isHighlight || false,
+          content: post.content || { content: [] },
+          imageCaption: post.imageCaption || '',
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
           // Relationships data
-          image: postData.image,
-          imageUrl: postData.image?.data?.attributes?.url || '',
-          category: postData.category,
-          categoryName: postData.category?.data?.attributes?.name || '',
-          users_permissions_user: postData.users_permissions_user,
+          image: post.image,
+          imageUrl: post.image?.data?.attributes?.url || '',
+          category: post.category,
+          categoryName: post.category?.data?.attributes?.name || '',
+          users_permissions_user: post.users_permissions_user,
           username:
-            postData.users_permissions_user?.data?.attributes?.username || '',
-          tags: postData.tags,
+            post.users_permissions_user?.data?.attributes?.username || '',
+          tags: post.tags,
           tagNames:
-            postData.tags?.data?.map((tag: any) => tag.attributes.name) || [],
+            post.tags?.data?.map((tag: any) => tag.attributes.name) || [],
         };
       });
 
@@ -183,7 +186,7 @@ const PostsManagement = () => {
 
       const formattedCategories = categoriesData.map((category: any) => ({
         id: category.id,
-        name: category.attributes.name,
+        name: category.name,
       }));
 
       setCategories(formattedCategories);
@@ -201,7 +204,7 @@ const PostsManagement = () => {
 
       const formattedTags = tagsData.map((tag: any) => ({
         id: tag.id,
-        name: tag.attributes.name,
+        name: tag.name,
       }));
 
       setTags(formattedTags);
@@ -227,9 +230,21 @@ const PostsManagement = () => {
     }
   };
 
+  // Add a function to reset search filters
+  const resetSearchFilters = () => {
+    setSearchFilters({
+      title: '',
+      category: undefined,
+      isHighlight: undefined,
+    });
+    // Reset filtered data to show all posts
+    setFilteredData(data);
+  };
+
   // Fetch data when component is mounted
   useEffect(() => {
     if (mounted) {
+      resetSearchFilters();
       fetchPosts();
       fetchCategories();
       fetchTags();
@@ -292,14 +307,17 @@ const PostsManagement = () => {
         .toLowerCase()
         .includes(searchFilters.title.toLowerCase());
 
-      const matchesCategory = searchFilters.category
-        ? item.categoryName === searchFilters.category
-        : true;
+      const matchesCategory =
+        searchFilters.category === undefined || searchFilters.category === ''
+          ? true
+          : item.categoryName === searchFilters.category;
 
-      const matchesHighlight = searchFilters.isHighlight
-        ? (searchFilters.isHighlight === 'true' && item.isHighlight) ||
-          (searchFilters.isHighlight === 'false' && !item.isHighlight)
-        : true;
+      const matchesHighlight =
+        searchFilters.isHighlight === undefined ||
+        searchFilters.isHighlight === ''
+          ? true
+          : (searchFilters.isHighlight === 'true' && item.isHighlight) ||
+            (searchFilters.isHighlight === 'false' && !item.isHighlight);
 
       return matchesTitle && matchesCategory && matchesHighlight;
     });
@@ -357,7 +375,9 @@ const PostsManagement = () => {
       cancelText: 'Huỷ',
       onOk: async () => {
         try {
-          await fdAxios.delete(`${API_ROUTES.POST}/${selectedRecord.id}`);
+          await fdAxios.delete(
+            `${API_ROUTES.POST}/${selectedRecord.documentId}`
+          );
           message.success('Xoá bài viết thành công');
           fetchPosts();
           setSelectedRecord(null);
@@ -396,26 +416,23 @@ const PostsManagement = () => {
           tags: values.tagIds || [],
         };
 
-        // Handle image upload if there is a new image
-        if (imageFile.length > 0 && !imageFile[0].url?.startsWith('http')) {
-          // Create a FormData object for file upload
-          const formData = new FormData();
-          formData.append('files', imageFile[0].originFileObj as File);
+        // Handle image if it exists in the form
+        if (imageFile.length > 0) {
+          const currentImage = imageFile[0];
 
-          // Upload the image
-          const uploadResponse = await fdAxios.post(
-            `${API_ROUTES.UPLOAD}`,
-            formData
-          );
-
-          if (uploadResponse.data && uploadResponse.data.length > 0) {
-            postData.image = uploadResponse.data[0].id;
+          // If this is a newly uploaded image with response data
+          if (currentImage.response) {
+            // Strapi will expect the ID of the uploaded file
+            postData.image = currentImage.response[0].id;
+            console.log('Using uploaded image ID:', postData.image);
           }
+          // For existing images that were already in the database, we don't need to set anything
+          // as Strapi will maintain the existing relationship if not specified
         }
 
         if (selectedRecord) {
           // Update existing post
-          await fdAxios.put(`${API_ROUTES.POST}/${selectedRecord.id}`, {
+          await fdAxios.put(`${API_ROUTES.POST}/${selectedRecord.documentId}`, {
             data: postData,
           });
           message.success('Cập nhật bài viết thành công');
@@ -442,6 +459,8 @@ const PostsManagement = () => {
 
   // Handle image upload
   const handleImageChange = (info: any) => {
+    console.log('handleImageChange:', info.file.status, info.fileList.length);
+
     let fileList = [...info.fileList];
 
     // Limit to only one file
@@ -456,6 +475,111 @@ const PostsManagement = () => {
     });
 
     setImageFile(fileList);
+  };
+
+  // Update Upload component to use customRequest
+  const customUploadRequest = async ({ file, onSuccess, onError }: any) => {
+    // Kiểm tra xem file có originFileObj không
+    const uploadFile = file as any;
+    const rcFile = uploadFile.originFileObj || uploadFile;
+
+    console.log('File structure:', {
+      type: typeof file,
+      isFileInstance: file instanceof File,
+      hasOriginFileObj: uploadFile.originFileObj !== undefined,
+    });
+
+    // Kiểm tra xem rcFile có phải là File thật không
+    if (!(rcFile instanceof File)) {
+      console.error('RcFile không hợp lệ:', rcFile);
+      message.error('File không hợp lệ');
+      onError && onError(new Error('Invalid file'));
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Log trước khi append
+      console.log('RcFile details:', {
+        name: rcFile.name,
+        size: rcFile.size,
+        type: rcFile.type,
+        lastModified: rcFile.lastModified,
+      });
+
+      // Tạo FormData mới
+      const formData = new FormData();
+
+      // Dùng append để thêm file blob
+      formData.append('files', rcFile);
+
+      // In ra payload để debug
+      // Sử dụng cách an toàn với TypeScript
+      const entries = Array.from(formData.entries());
+      for (let i = 0; i < entries.length; i++) {
+        const [key, value] = entries[i];
+        if (value instanceof File) {
+          console.log(`${key}: File - ${value.name}`);
+        } else {
+          console.log(`${key}: ${String(value)}`);
+        }
+      }
+
+      // Gửi file lên Strapi bằng fetch API
+      const response = await fetch(API_ROUTES.UPLOAD, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(
+            errorData.error?.message ||
+              `Upload failed with status ${response.status}`
+          );
+        } catch (e) {
+          throw new Error(
+            `Upload failed with status ${response.status}: ${errorText.substring(0, 100)}`
+          );
+        }
+      }
+
+      const data = await response.json();
+      console.log('Upload response:', data);
+
+      if (data && data.length > 0) {
+        const uploadedFile = data[0];
+
+        // Cập nhật fileList với URL từ Strapi
+        let newFileList = [
+          {
+            uid: '-1',
+            name: rcFile.name,
+            status: 'done' as const, // Use const assertion for type safety
+            url: uploadedFile.url,
+            response: data, // Store full response for use in handleSave
+          },
+        ];
+
+        setImageFile(newFileList);
+        message.success(`Upload ảnh đại diện thành công`);
+        onSuccess && onSuccess(data);
+      } else {
+        throw new Error('No data returned from upload');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      message.error('Lỗi tải lên ảnh: ' + error.message);
+      onError && onError(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Table columns
@@ -501,6 +625,13 @@ const PostsManagement = () => {
       dataIndex: 'view',
       key: 'view',
       width: 100,
+    },
+    {
+      title: 'DocumentID',
+      dataIndex: 'documentId',
+      key: 'documentId',
+      width: 200,
+      ellipsis: true,
     },
     {
       title: 'Ngày đăng',
@@ -575,6 +706,7 @@ const PostsManagement = () => {
         <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
           Tìm kiếm
         </Button>
+        <Button onClick={resetSearchFilters}>Xoá bộ lọc</Button>
         <div style={{ marginLeft: 'auto' }}>
           <Button
             type="primary"
@@ -732,21 +864,45 @@ const PostsManagement = () => {
               }
               return e?.fileList || [];
             }}
+            extra="Chỉ cho phép tải lên 1 hình ảnh đại diện (tối đa 5MB)"
           >
             <Upload
               listType="picture-card"
               fileList={imageFile}
               onChange={handleImageChange}
               beforeUpload={(file) => {
+                // Validate file type - only accept images
                 const isImage = file.type.startsWith('image/');
                 if (!isImage) {
                   message.error('Vui lòng chỉ tải lên tệp hình ảnh!');
+                  return Upload.LIST_IGNORE;
                 }
-                return false; // Prevent auto upload
+
+                // Check file size (limit to 5MB)
+                const isLessThan5M = file.size / 1024 / 1024 < 5;
+                if (!isLessThan5M) {
+                  message.error('Kích thước hình ảnh phải nhỏ hơn 5MB!');
+                  return Upload.LIST_IGNORE;
+                }
+
+                // Return false to prevent default upload behavior
+                return false;
               }}
+              customRequest={customUploadRequest}
               maxCount={1}
             >
-              {imageFile.length >= 1 ? null : getUploadButton()}
+              {imageFile.length >= 1 ? null : (
+                <div className="flex flex-col items-center justify-center">
+                  {loading ? (
+                    <LoadingOutlined className="text-lg" />
+                  ) : (
+                    <PlusOutlined className="text-lg" />
+                  )}
+                  <div className="mt-2 text-xs">
+                    {loading ? 'Đang tải...' : 'Tải lên'}
+                  </div>
+                </div>
+              )}
             </Upload>
           </Form.Item>
 
