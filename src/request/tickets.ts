@@ -4,6 +4,7 @@ import qs from 'qs';
 
 export interface Ticket {
   id?: number;
+  documentId?: number;
   name: string;
   price: number;
   type: string;
@@ -59,18 +60,18 @@ export const getTickets = async (
 };
 
 // Fetch a single ticket by ID
-export const getTicketById = async (id: number) => {
+export const getTicketById = async (documentId: number) => {
   try {
-    const response = await fdAxios.get(`${API_ROUTES.TICKETS}/${id}`);
+    const response = await fdAxios.get(`${API_ROUTES.TICKETS}/${documentId}`);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching ticket with ID ${id}:`, error);
+    console.error(`Error fetching ticket with ID ${documentId}:`, error);
     throw error;
   }
 };
 
 // Create a new ticket
-export const createTicket = async (ticketData: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const createTicket = async (ticketData: Omit<Ticket, 'id' | 'documentId' | 'createdAt' | 'updatedAt'>) => {
   try {
     const response = await fdAxios.post(API_ROUTES.TICKETS, {
       data: ticketData,
@@ -83,25 +84,25 @@ export const createTicket = async (ticketData: Omit<Ticket, 'id' | 'createdAt' |
 };
 
 // Update a ticket
-export const updateTicket = async (id: number, ticketData: Partial<Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>>) => {
+export const updateTicket = async (documentId: number, ticketData: Partial<Omit<Ticket, 'id' | 'documentId' | 'createdAt' | 'updatedAt'>>) => {
   try {
-    const response = await fdAxios.put(`${API_ROUTES.TICKETS}/${id}`, {
+    const response = await fdAxios.put(`${API_ROUTES.TICKETS}/${documentId}`, {
       data: ticketData,
     });
     return response.data;
   } catch (error) {
-    console.error(`Error updating ticket with ID ${id}:`, error);
+    console.error(`Error updating ticket with ID ${documentId}:`, error);
     throw error;
   }
 };
 
 // Delete a ticket
-export const deleteTicket = async (id: number) => {
+export const deleteTicket = async (documentId: number) => {
   try {
-    const response = await fdAxios.delete(`${API_ROUTES.TICKETS}/${id}`);
+    const response = await fdAxios.delete(`${API_ROUTES.TICKETS}/${documentId}`);
     return response.data;
   } catch (error) {
-    console.error(`Error deleting ticket with ID ${id}:`, error);
+    console.error(`Error deleting ticket with ID ${documentId}:`, error);
     throw error;
   }
 }; 

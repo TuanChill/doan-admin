@@ -30,6 +30,7 @@ import {
 
 interface StrapiTicket {
   id: number;
+  documentId: number;
   name: string;
   price: number;
   type: string;
@@ -41,6 +42,7 @@ interface StrapiTicket {
 interface TicketRecord {
   key: string;
   id: number;
+  documentId: number;
   name: string;
   price: string | number;
   type: string;
@@ -91,6 +93,7 @@ const TicketsManagement = () => {
         const ticketsData = response.data.map((ticket: StrapiTicket) => ({
           key: ticket.id.toString(),
           id: ticket.id,
+          documentId: ticket.documentId,
           name: ticket.name,
           price: formatPrice(ticket.price),
           type: ticket.type,
@@ -200,7 +203,7 @@ const TicketsManagement = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          await deleteTicket(selectedRecord.id);
+          await deleteTicket(selectedRecord.documentId);
 
           // Refresh the list
           fetchTickets();
@@ -240,7 +243,7 @@ const TicketsManagement = () => {
 
         if (selectedRecord) {
           // Update existing ticket
-          await updateTicket(selectedRecord.id, ticketData);
+          await updateTicket(selectedRecord.documentId, ticketData);
           message.success('Cập nhật vé thành công');
         } else {
           // Create new ticket
