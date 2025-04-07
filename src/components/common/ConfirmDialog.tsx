@@ -32,7 +32,7 @@ export default function ConfirmDialog({
             {description}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex justify-end space-x-2 pt-4">
+        <DialogFooter className="flex justify-end space-x-2 pt-4 text-black">
           <Button variant="outline" onClick={onClose}>
             Hủy
           </Button>

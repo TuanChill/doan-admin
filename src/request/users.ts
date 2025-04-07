@@ -5,13 +5,24 @@ import qs from 'qs';
 export interface User {
   id?: number;
   email: string;
+  username?: string;
   fullName?: string;
   phoneNumber?: string;
   address?: string;
   dateOfBirth?: string;
   gender?: 'male' | 'female' | 'other';
-  password?: string;
   permission?: 'user' | 'admin';
+  password?: string;
+}
+
+export interface UserUpdateData {
+  address?: string;
+  fullName?: string;
+  username?: string;
+  gender?: 'male' | 'female' | 'other';
+  dateOfBirth?: string;
+  phoneNumber?: string;
+  email?: string;
 }
 
 export interface Action {
@@ -80,16 +91,12 @@ export const getUsers = async (
     sort: ['updatedAt:desc'],
   };
 
-  console.log('Query đầy đủ:', JSON.stringify(query, null, 2));
-
   const params = qs.stringify(query, {
     encodeValuesOnly: true,
   });
 
   try {
-    console.log(`Gửi request: ${API_ROUTES.USERS}?${params}`);
     const response = await fdAxios.get(`${API_ROUTES.USERS}?${params}`);
-    console.log('Phản hồi API:', response.data);
     return response.data;
   } catch (error) {
     console.error('Lỗi khi gọi API users:', error);
@@ -143,15 +150,34 @@ export const getUserActions = async (
 // Create a new user
 export const createUser = async (userData: User) => {
   const response = await fdAxios.post(API_ROUTES.USERS, {
-    data: userData,
+    ...userData,
+    role: '1',
   });
   return response.data;
 };
 
 // Update a user
-export const updateUser = async (id: number, userData: Partial<User>) => {
+export const updateUser = async (id: number, userData: UserUpdateData) => {
+  // Only include the allowed fields
+  const allowedData: UserUpdateData = {
+    address: userData.address,
+    fullName: userData.fullName,
+    username: userData.username,
+    gender: userData.gender,
+    dateOfBirth: userData.dateOfBirth,
+    phoneNumber: userData.phoneNumber,
+    email: userData.email,
+  };
+
+  // Remove undefined fields
+  Object.keys(allowedData).forEach(key => {
+    if (allowedData[key as keyof UserUpdateData] === undefined) {
+      delete allowedData[key as keyof UserUpdateData];
+    }
+  });
+
   const response = await fdAxios.put(`${API_ROUTES.USERS}/${id}`, {
-    data: userData,
+    ...allowedData,
   });
   return response.data;
 };

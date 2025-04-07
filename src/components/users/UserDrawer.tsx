@@ -50,6 +50,7 @@ export default function UserDrawer({
 }: UserDrawerProps) {
   const [userData, setUserData] = useState<User>({
     email: '',
+    username: '',
     fullName: '',
     phoneNumber: '',
     address: '',
@@ -82,6 +83,7 @@ export default function UserDrawer({
       // Reset form for creating new user
       setUserData({
         email: '',
+        username: '',
         fullName: '',
         phoneNumber: '',
         address: '',
@@ -176,7 +178,7 @@ export default function UserDrawer({
       let response;
       if (mode === 'create') {
         response = await createUser(dataToSend);
-        if (response && response.data) {
+        if (response) {
           snackbar.success('Thành công', 'Đã tạo tài khoản thành công');
           onClose(true); // Close with refresh
         } else {
@@ -184,7 +186,7 @@ export default function UserDrawer({
         }
       } else if (mode === 'edit' && user?.id) {
         response = await updateUser(user.id, dataToSend);
-        if (response && response.data) {
+        if (response) {
           snackbar.success('Thành công', 'Đã cập nhật tài khoản thành công');
           onClose(true); // Close with refresh
         } else {
@@ -265,6 +267,19 @@ export default function UserDrawer({
                   id="email"
                   name="email"
                   value={userData.email}
+                  disabled
+                  className="text-gray-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-700">
+                  Tên đăng nhập
+                </Label>
+                <Input
+                  id="username"
+                  name="username"
+                  value={userData.username || ''}
                   disabled
                   className="text-gray-900"
                 />
@@ -454,16 +469,30 @@ export default function UserDrawer({
               />
             </div>
 
-            {(mode === 'create' || mode === 'edit') && (
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-gray-700">
+                Tên đăng nhập
+              </Label>
+              <Input
+                id="username"
+                name="username"
+                value={userData.username || ''}
+                onChange={handleChange}
+                required
+                className="text-gray-900"
+              />
+            </div>
+
+            {mode === 'create' && (
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-700">
-                  Mật khẩu{' '}
-                  {mode === 'edit' && '(Để trống nếu không muốn thay đổi)'}
+                  Mật khẩu
                 </Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
+                  disabled={mode !== 'create'}
                   value={userData.password || ''}
                   onChange={handleChange}
                   className="text-gray-900"
