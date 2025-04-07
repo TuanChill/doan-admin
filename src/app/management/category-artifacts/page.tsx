@@ -69,7 +69,7 @@ const CategoryArtifactManagement = () => {
       const query = qs.stringify(
         {
           populate: ['exhibits'],
-          sort: ['orderIndex:asc'],
+          sort: ['orderIndex:asc', 'updatedAt:desc'],
         },
         {
           encodeValuesOnly: true,
