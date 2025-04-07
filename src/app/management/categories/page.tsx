@@ -182,7 +182,6 @@ const CategoriesManagement = () => {
           data: {
             name: values.name,
             index: values.index || 0,
-            documentId: Date.now().toString(), // Generate a unique documentId
           },
         });
         message.success('Thêm danh mục thành công');

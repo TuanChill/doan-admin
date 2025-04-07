@@ -172,17 +172,59 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
     setIsClient(true);
   }, []);
 
+  const isMenuActive = (menuItem: MenuItem) => {
+    // For main menu items without subitems
+    if (pathname === `/management/${menuItem.key}`) {
+      return true;
+    }
+
+    // For menu items with subitems, check if any submenu is active
+    if (menuItem.subItems && menuItem.subItems.length > 0) {
+      return menuItem.subItems.some(
+        (subItem) => pathname === `/management/${subItem.key}`
+      );
+    }
+
+    return false;
+  };
+
+  const isSubMenuActive = (subItemKey: string) => {
+    return pathname === `/management/${subItemKey}`;
+  };
+
+  const isMenuExpanded = (menuItem: MenuItem) => {
+    // If the current path is a submenu of this menu item, keep it expanded
+    if (menuItem.subItems && menuItem.subItems.length > 0) {
+      return menuItem.subItems.some(
+        (subItem) => pathname === `/management/${subItem.key}`
+      );
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (pathname.includes('/management/')) {
       const pathAfterManagement = pathname.split('/management/')[1];
       if (pathAfterManagement) {
+        // Find if this is a submenu
+        for (const menuItem of menuItems) {
+          const subItem = menuItem.subItems.find(
+            (s) => s.key === pathAfterManagement
+          );
+          if (subItem) {
+            setCurrentTab(subItem.label);
+            return;
+          }
+        }
+
+        // If not a submenu, set the main menu label
         setCurrentTab(
           menuItems.find((item) => item.key === pathAfterManagement)?.label ||
             ''
         );
       }
     }
-  }, [pathname]);
+  }, [pathname, menuItems]);
 
   return (
     isClient && (
@@ -211,8 +253,6 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
             {menuItems
               .filter((menuItem) => menuItem.isAllowed)
               .map((menuItem) => {
-                const isActive =
-                  pathname === (menuItem.path || '/management/' + menuItem.key);
                 return (
                   <li
                     key={menuItem.key}
@@ -221,25 +261,21 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
                       handleItemClick(menuItem.key, menuItem.path)
                     }
                     className={cn(
-                      isActive &&
+                      isMenuActive(menuItem) &&
+                        menuItem.subItems.length === 0 &&
                         'rounded-l-lg border-r-[4px] border-light-blue-40 bg-[#363637]',
                       menuItem.class +
                         ' mt-2 cursor-pointer hover:rounded-lg hover:bg-dark-gray-70'
                     )}
                   >
-                    {menuItem.subItems ? (
-                      <details
-                        open={
-                          !!menuItem.subItems.find(
-                            (e) => '/' + e.key == pathname
-                          )
-                        }
-                      >
+                    {menuItem.subItems.length > 0 ? (
+                      <details open={isMenuExpanded(menuItem)}>
                         <summary
                           className={cn(
                             'text-gray-0 flex items-center justify-between px-2 py-3 font-semibold after:!text-gray-300',
                             !isShowing && 'after:hidden',
-                            menuItem.subItems.length === 0 && 'after:hidden'
+                            menuItem.subItems.length === 0 && 'after:hidden',
+                            isMenuActive(menuItem) && 'text-light-blue-40'
                           )}
                         >
                           <div className="text-gray-0 flex items-center gap-4">
@@ -260,13 +296,16 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
                                   <li
                                     key={subItem.key}
                                     className={cn(
-                                      pathname === '/' + subItem.key &&
-                                        'text-gray-10 rounded-md bg-blue-500 text-white',
+                                      isSubMenuActive(subItem.key)
+                                        ? 'rounded-md bg-blue-500 font-medium text-white'
+                                        : 'transition-colors hover:bg-dark-gray-70 hover:text-white',
                                       subItem.class
                                     )}
                                     onClick={() => handleItemClick(subItem.key)}
                                   >
-                                    <a>{subItem.label}</a>
+                                    <a className="block w-full">
+                                      {subItem.label}
+                                    </a>
                                   </li>
                                 );
                               })}
@@ -274,15 +313,19 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
                         )}
                       </details>
                     ) : (
-                      <div className="text-gray-0 flex items-center gap-3 px-3">
-                        {menuItem.icon}
-                        <summary className="text-sm font-medium">
+                      <div
+                        className={cn(
+                          'text-gray-0 flex items-center px-2 py-3 font-semibold'
+                        )}
+                      >
+                        <div className="text-gray-0 flex items-center gap-4">
+                          {menuItem.icon}
                           {isShowing && (
-                            <div className="text-sm font-medium">
+                            <div className="text-subhead-sm">
                               {menuItem.label}
                             </div>
                           )}
-                        </summary>
+                        </div>
                       </div>
                     )}
                   </li>

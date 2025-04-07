@@ -156,7 +156,6 @@ const TagsManagement = () => {
         await fdAxios.post(API_ROUTES.TAG, {
           data: {
             name: values.name,
-            documentId: Date.now().toString(), // Generate a unique documentId
           },
         });
         message.success('Thêm thẻ tag thành công');

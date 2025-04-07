@@ -194,7 +194,6 @@ const CategoryArtifactManagement = () => {
             name: values.name,
             orderIndex: values.orderIndex || 0,
             description: values.description || '',
-            documentId: Date.now().toString(), // Generate a unique documentId
           },
         });
         message.success('Thêm loại hiện vật thành công');
