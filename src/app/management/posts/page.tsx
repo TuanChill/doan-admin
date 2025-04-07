@@ -27,9 +27,10 @@ import {
 import type { UploadFile } from 'antd/es/upload/interface';
 import { API_ROUTES } from '@/const/routes';
 import { fdAxios } from '@/config/axios.config';
-import PostContentEditor from '@/components/PostContentEditor';
+import PostContentEditor from '@/components/NewPostContentEditor';
 import qs from 'qs';
 import dayjs from 'dayjs';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface Post {
   id: number;
@@ -94,11 +95,8 @@ const PostsManagement = () => {
     isHighlight: undefined,
   });
   const [filteredData, setFilteredData] = useState<PostRecord[]>([]);
-  const [imageFile, setImageFile] = useState<UploadFile[]>([]);
-  const [currentUser, setCurrentUser] = useState<{
-    id: number;
-    username: string;
-  } | null>(null);
+  const [imageFile, setImageFile] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Safe initialization after component is mounted
   useEffect(() => {
@@ -221,10 +219,7 @@ const PostsManagement = () => {
       if (!token) return;
 
       const response = await fdAxios.get(`${API_ROUTES.ME}?populate=role`);
-      setCurrentUser({
-        id: response.data.id,
-        username: response.data.username,
-      });
+      setCurrentUser(response.data);
     } catch (error) {
       console.error('Error fetching user info:', error);
     }
@@ -255,7 +250,7 @@ const PostsManagement = () => {
   const showModal = () => {
     setSelectedRecord(null);
     setIsViewMode(false);
-    setImageFile([]);
+    setImageFile('');
     form.resetFields();
     form.setFieldsValue({
       date: dayjs(),
@@ -270,18 +265,6 @@ const PostsManagement = () => {
       message.warning('Vui lòng chọn một bài viết để sửa!');
       return;
     }
-
-    // Set image file list if image exists
-    const newImageFile: UploadFile[] = [];
-    if (selectedRecord.imageUrl) {
-      newImageFile.push({
-        uid: `-1`,
-        name: selectedRecord.image?.data?.attributes?.name || 'image.jpg',
-        status: 'done',
-        url: selectedRecord.imageUrl,
-      });
-    }
-    setImageFile(newImageFile);
 
     form.setFieldsValue({
       title: selectedRecord.title,
@@ -331,17 +314,6 @@ const PostsManagement = () => {
       message.warning('Vui lòng chọn một bài viết để xem!');
       return;
     }
-
-    const newImageFile: UploadFile[] = [];
-    if (selectedRecord.imageUrl) {
-      newImageFile.push({
-        uid: `-1`,
-        name: selectedRecord.image?.data?.attributes?.name || 'image.jpg',
-        status: 'done',
-        url: selectedRecord.imageUrl,
-      });
-    }
-    setImageFile(newImageFile);
 
     form.setFieldsValue({
       title: selectedRecord.title,
@@ -417,17 +389,8 @@ const PostsManagement = () => {
         };
 
         // Handle image if it exists in the form
-        if (imageFile.length > 0) {
-          const currentImage = imageFile[0];
-
-          // If this is a newly uploaded image with response data
-          if (currentImage.response) {
-            // Strapi will expect the ID of the uploaded file
-            postData.image = currentImage.response[0].id;
-            console.log('Using uploaded image ID:', postData.image);
-          }
-          // For existing images that were already in the database, we don't need to set anything
-          // as Strapi will maintain the existing relationship if not specified
+        if (imageFile) {
+          postData.image = imageFile;
         }
 
         if (selectedRecord) {
@@ -455,131 +418,6 @@ const PostsManagement = () => {
         setLoading(false);
       }
     });
-  };
-
-  // Handle image upload
-  const handleImageChange = (info: any) => {
-    console.log('handleImageChange:', info.file.status, info.fileList.length);
-
-    let fileList = [...info.fileList];
-
-    // Limit to only one file
-    fileList = fileList.slice(-1);
-
-    // Update status
-    fileList = fileList.map((file) => {
-      if (file.response) {
-        file.url = file.response.url;
-      }
-      return file;
-    });
-
-    setImageFile(fileList);
-  };
-
-  // Update Upload component to use customRequest
-  const customUploadRequest = async ({ file, onSuccess, onError }: any) => {
-    // Kiểm tra xem file có originFileObj không
-    const uploadFile = file as any;
-    const rcFile = uploadFile.originFileObj || uploadFile;
-
-    console.log('File structure:', {
-      type: typeof file,
-      isFileInstance: file instanceof File,
-      hasOriginFileObj: uploadFile.originFileObj !== undefined,
-    });
-
-    // Kiểm tra xem rcFile có phải là File thật không
-    if (!(rcFile instanceof File)) {
-      console.error('RcFile không hợp lệ:', rcFile);
-      message.error('File không hợp lệ');
-      onError && onError(new Error('Invalid file'));
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Log trước khi append
-      console.log('RcFile details:', {
-        name: rcFile.name,
-        size: rcFile.size,
-        type: rcFile.type,
-        lastModified: rcFile.lastModified,
-      });
-
-      // Tạo FormData mới
-      const formData = new FormData();
-
-      // Dùng append để thêm file blob
-      formData.append('files', rcFile);
-
-      // In ra payload để debug
-      // Sử dụng cách an toàn với TypeScript
-      const entries = Array.from(formData.entries());
-      for (let i = 0; i < entries.length; i++) {
-        const [key, value] = entries[i];
-        if (value instanceof File) {
-          console.log(`${key}: File - ${value.name}`);
-        } else {
-          console.log(`${key}: ${String(value)}`);
-        }
-      }
-
-      // Gửi file lên Strapi bằng fetch API
-      const response = await fetch(API_ROUTES.UPLOAD, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(
-            errorData.error?.message ||
-              `Upload failed with status ${response.status}`
-          );
-        } catch (e) {
-          throw new Error(
-            `Upload failed with status ${response.status}: ${errorText.substring(0, 100)}`
-          );
-        }
-      }
-
-      const data = await response.json();
-      console.log('Upload response:', data);
-
-      if (data && data.length > 0) {
-        const uploadedFile = data[0];
-
-        // Cập nhật fileList với URL từ Strapi
-        let newFileList = [
-          {
-            uid: '-1',
-            name: rcFile.name,
-            status: 'done' as const, // Use const assertion for type safety
-            url: uploadedFile.url,
-            response: data, // Store full response for use in handleSave
-          },
-        ];
-
-        setImageFile(newFileList);
-        message.success(`Upload ảnh đại diện thành công`);
-        onSuccess && onSuccess(data);
-      } else {
-        throw new Error('No data returned from upload');
-      }
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      message.error('Lỗi tải lên ảnh: ' + error.message);
-      onError && onError(error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Table columns
@@ -866,44 +704,38 @@ const PostsManagement = () => {
             }}
             extra="Chỉ cho phép tải lên 1 hình ảnh đại diện (tối đa 5MB)"
           >
-            <Upload
-              listType="picture-card"
-              fileList={imageFile}
-              onChange={handleImageChange}
-              beforeUpload={(file) => {
-                // Validate file type - only accept images
-                const isImage = file.type.startsWith('image/');
-                if (!isImage) {
-                  message.error('Vui lòng chỉ tải lên tệp hình ảnh!');
-                  return Upload.LIST_IGNORE;
-                }
+            <ImageUpload
+              value={imageFile}
+              onChange={async (file) => {
+                try {
+                  const formData = new FormData();
+                  formData.append('files', file);
 
-                // Check file size (limit to 5MB)
-                const isLessThan5M = file.size / 1024 / 1024 < 5;
-                if (!isLessThan5M) {
-                  message.error('Kích thước hình ảnh phải nhỏ hơn 5MB!');
-                  return Upload.LIST_IGNORE;
-                }
+                  const response = await fetch(API_ROUTES.UPLOAD, {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: formData,
+                  });
 
-                // Return false to prevent default upload behavior
-                return false;
+                  if (!response.ok) {
+                    throw new Error('Upload failed');
+                  }
+
+                  const data = await response.json();
+                  if (data && data.length > 0) {
+                    setImageFile(data[0].url);
+                  }
+                } catch (error) {
+                  console.error('Error uploading image:', error);
+                  message.error('Không thể tải lên ảnh');
+                }
               }}
-              customRequest={customUploadRequest}
-              maxCount={1}
-            >
-              {imageFile.length >= 1 ? null : (
-                <div className="flex flex-col items-center justify-center">
-                  {loading ? (
-                    <LoadingOutlined className="text-lg" />
-                  ) : (
-                    <PlusOutlined className="text-lg" />
-                  )}
-                  <div className="mt-2 text-xs">
-                    {loading ? 'Đang tải...' : 'Tải lên'}
-                  </div>
-                </div>
-              )}
-            </Upload>
+              onRemove={() => {
+                setImageFile('');
+              }}
+            />
           </Form.Item>
 
           <Form.Item name="imageCaption" label="Chú thích ảnh">

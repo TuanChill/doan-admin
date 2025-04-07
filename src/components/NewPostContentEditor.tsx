@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,8 @@ const formSchema = z.object({
   ),
 });
 
+type FormData = z.infer<typeof formSchema>;
+
 const PostContentEditor: React.FC<PostContentEditorProps> = ({
   value,
   onChange,
@@ -45,7 +47,7 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false);
 
-  const form = useForm({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       sections: value?.content || [{ heading: '', text: '', imageCaption: '' }],
@@ -64,7 +66,7 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
     }
   }, [value, form]);
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit: SubmitHandler<FormData> = (data) => {
     if (onChange) {
       onChange({ content: data.sections });
     }
