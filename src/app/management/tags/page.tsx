@@ -1,16 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Button,
-  Table,
-  Input,
-  Modal,
-  Form,
-  message,
-  InputNumber,
-  Spin,
-} from 'antd';
+import { Button, Table, Input, Modal, Form, message, Spin } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -22,77 +13,66 @@ import { API_ROUTES } from '@/const/routes';
 import { fdAxios } from '@/config/axios.config';
 import qs from 'qs';
 
-interface Category {
+interface Tag {
   id: number;
   documentId: string;
   name: string;
-  index: number;
   posts?: { id: number; title: string }[];
 }
 
-interface CategoryRecord extends Category {
+interface TagRecord extends Tag {
   key: string;
   posts_count: number;
 }
 
-const CategoriesManagement = () => {
+const TagsManagement = () => {
   const [mounted, setMounted] = useState(false);
-  const [data, setData] = useState<CategoryRecord[]>([]);
+  const [data, setData] = useState<TagRecord[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [selectedRecord, setSelectedRecord] = useState<CategoryRecord | null>(
-    null
-  );
+  const [selectedRecord, setSelectedRecord] = useState<TagRecord | null>(null);
   const [searchText, setSearchText] = useState('');
-  const [filteredData, setFilteredData] = useState<CategoryRecord[]>([]);
+  const [filteredData, setFilteredData] = useState<TagRecord[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState('admin');
 
   // Safe access to localStorage after component is mounted
   useEffect(() => {
     setMounted(true);
-    const username = localStorage.getItem('username');
-    if (username) {
-      setCurrentUser(username);
-    }
   }, []);
 
-  // Fetch categories from API
-  const fetchCategories = async () => {
+  // Fetch tags from API
+  const fetchTags = async () => {
     try {
       setLoading(true);
       // Create query to include posts relationship
       const query = qs.stringify(
         {
           populate: ['posts'],
-          sort: ['index:asc'],
+          sort: ['name:asc'],
         },
         {
           encodeValuesOnly: true,
         }
       );
 
-      const response = await fdAxios.get(`${API_ROUTES.CATEGORY}?${query}`);
-      const categoriesData = response.data.data;
+      const response = await fdAxios.get(`${API_ROUTES.TAG}?${query}`);
+      const tagsData = response.data.data;
 
       // Transform the data to match our component's structure
-      const formattedData: CategoryRecord[] = categoriesData.map(
-        (category: any) => ({
-          id: category.id,
-          documentId: category.documentId || category.id.toString(),
-          key: category.id.toString(),
-          name: category.name,
-          index: category.index || 0,
-          posts: category.posts?.data || [],
-          posts_count: category.posts?.data?.length || 0,
-        })
-      );
+      const formattedData: TagRecord[] = tagsData.map((tag: any) => ({
+        id: tag.id,
+        documentId: tag.documentId || tag.id.toString(),
+        key: tag.id.toString(),
+        name: tag.name,
+        posts: tag.posts?.data || [],
+        posts_count: tag.posts?.data?.length || 0,
+      }));
 
       setData(formattedData);
       setFilteredData(formattedData);
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      message.error('Không thể tải danh sách danh mục');
+      console.error('Error fetching tags:', error);
+      message.error('Không thể tải danh sách thẻ tag');
     } finally {
       setLoading(false);
     }
@@ -100,7 +80,7 @@ const CategoriesManagement = () => {
 
   useEffect(() => {
     if (mounted) {
-      fetchCategories();
+      fetchTags();
     }
   }, [mounted]);
 
@@ -114,11 +94,10 @@ const CategoriesManagement = () => {
     setIsModalVisible(true);
   };
 
-  const handleEdit = (record: CategoryRecord) => {
+  const handleEdit = (record: TagRecord) => {
     setSelectedRecord(record);
     form.setFieldsValue({
       name: record.name,
-      index: record.index,
     });
     setIsModalVisible(true);
   };
@@ -130,10 +109,10 @@ const CategoriesManagement = () => {
     setFilteredData(filtered);
   };
 
-  const handleDelete = (record: CategoryRecord) => {
+  const handleDelete = (record: TagRecord) => {
     Modal.confirm({
       title: 'Xác nhận xoá',
-      content: `Bạn có chắc chắn muốn xoá danh mục: "${record.name}"? 
+      content: `Bạn có chắc chắn muốn xoá thẻ tag: "${record.name}"? 
                 Hành động này có thể ảnh hưởng đến ${record.posts_count || 0} bài viết.`,
       okText: 'Xóa',
       okType: 'danger',
@@ -141,12 +120,12 @@ const CategoriesManagement = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          await fdAxios.delete(`${API_ROUTES.CATEGORY}/${record.documentId}`);
-          message.success('Đã xoá danh mục thành công');
-          fetchCategories();
+          await fdAxios.delete(`${API_ROUTES.TAG}/${record.documentId}`);
+          message.success('Đã xoá thẻ tag thành công');
+          fetchTags();
         } catch (error) {
-          console.error('Error deleting category:', error);
-          message.error('Không thể xóa danh mục');
+          console.error('Error deleting tag:', error);
+          message.error('Không thể xóa thẻ tag');
         } finally {
           setLoading(false);
         }
@@ -165,52 +144,41 @@ const CategoriesManagement = () => {
       setLoading(true);
 
       if (selectedRecord) {
-        // Update existing category
-        await fdAxios.put(
-          `${API_ROUTES.CATEGORY}/${selectedRecord.documentId}`,
-          {
-            data: {
-              name: values.name,
-              index: values.index || 0,
-            },
-          }
-        );
-        message.success('Cập nhật danh mục thành công');
-      } else {
-        // Add new category
-        await fdAxios.post(API_ROUTES.CATEGORY, {
+        // Update existing tag
+        await fdAxios.put(`${API_ROUTES.TAG}/${selectedRecord.documentId}`, {
           data: {
             name: values.name,
-            index: values.index || 0,
+          },
+        });
+        message.success('Cập nhật thẻ tag thành công');
+      } else {
+        // Add new tag
+        await fdAxios.post(API_ROUTES.TAG, {
+          data: {
+            name: values.name,
             documentId: Date.now().toString(), // Generate a unique documentId
           },
         });
-        message.success('Thêm danh mục thành công');
+        message.success('Thêm thẻ tag thành công');
       }
 
       setIsModalVisible(false);
       form.resetFields();
-      fetchCategories();
+      fetchTags();
     } catch (error) {
-      console.error('Error saving category:', error);
-      message.error('Không thể lưu danh mục');
+      console.error('Error saving tag:', error);
+      message.error('Không thể lưu thẻ tag');
     } finally {
       setLoading(false);
     }
   };
 
-  const columns: ColumnsType<CategoryRecord> = [
+  const columns: ColumnsType<TagRecord> = [
     {
-      title: 'Tên danh mục',
+      title: 'Tên thẻ tag',
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: 'Thứ tự hiển thị',
-      dataIndex: 'index',
-      key: 'index',
-      sorter: (a, b) => a.index - b.index,
     },
     {
       title: 'Số bài viết',
@@ -247,58 +215,74 @@ const CategoriesManagement = () => {
   if (!mounted) return null;
 
   return (
-    <div className="mx-4 py-6">
+    <div className="container mx-auto py-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Quản lý danh mục bài viết
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Quản lý thẻ tag</h1>
         <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
-          Thêm danh mục
+          Thêm thẻ tag
         </Button>
       </div>
 
       <div className="mb-4 flex items-center">
         <Input
-          placeholder="Tìm kiếm theo tên danh mục"
+          placeholder="Tìm kiếm theo tên tag"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           prefix={<SearchOutlined />}
-          className="max-w-md"
+          style={{ width: 250 }}
         />
       </div>
 
       <Spin spinning={loading}>
-        <Table
-          dataSource={filteredData}
-          columns={columns}
-          rowKey="key"
-          pagination={{ pageSize: 10 }}
-        />
+        <div className="rounded-lg bg-white shadow">
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="key"
+            pagination={{ pageSize: 10 }}
+            onRow={(record) => ({
+              onClick: () => {
+                setSelectedRecord(record);
+              },
+              style: {
+                background: selectedRecord?.id === record.id ? '#e6f7ff' : '',
+                cursor: 'pointer',
+              },
+            })}
+          />
+        </div>
       </Spin>
 
       <Modal
-        title={selectedRecord ? 'Sửa danh mục' : 'Thêm danh mục'}
+        title={selectedRecord ? 'Chỉnh sửa thẻ tag' : 'Thêm thẻ tag mới'}
         open={isModalVisible}
-        onOk={handleSave}
         onCancel={handleCancel}
-        okText={selectedRecord ? 'Cập nhật' : 'Thêm mới'}
-        cancelText="Hủy"
-        confirmLoading={loading}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            Hủy
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={handleSave}
+          >
+            Lưu
+          </Button>,
+        ]}
       >
-        <Form form={form} layout="vertical">
+        <Form
+          form={form}
+          layout="vertical"
+          name="tagForm"
+          initialValues={{ name: '' }}
+        >
           <Form.Item
             name="name"
-            label="Tên danh mục"
-            rules={[{ required: true, message: 'Vui lòng nhập tên danh mục!' }]}
+            label="Tên thẻ tag"
+            rules={[{ required: true, message: 'Vui lòng nhập tên thẻ tag!' }]}
           >
-            <Input placeholder="Nhập tên danh mục" />
-          </Form.Item>
-          <Form.Item
-            name="index"
-            label="Thứ tự hiển thị"
-            tooltip="Số nhỏ hơn sẽ hiển thị trước"
-          >
-            <InputNumber min={1} placeholder="Nhập thứ tự hiển thị" />
+            <Input placeholder="Nhập tên thẻ tag" />
           </Form.Item>
         </Form>
       </Modal>
@@ -306,4 +290,4 @@ const CategoriesManagement = () => {
   );
 };
 
-export default CategoriesManagement;
+export default TagsManagement;

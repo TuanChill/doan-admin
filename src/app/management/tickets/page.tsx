@@ -263,7 +263,7 @@ const TicketsManagement = () => {
   if (!mounted) return null;
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="mx-4 py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý vé</h1>
       </div>

@@ -19,6 +19,8 @@ export const API_ROUTES = {
   CATEGORY_ARTIFACT: `${API_BASE}/category-artifacts`,
   CATEGORY: `${API_BASE}/categories`,
   POST: `${API_BASE}/posts`,
+  TAG: `${API_BASE}/tags`,
+  UPLOAD: `${API_BASE}/upload`,
   HISTORY_SEARCH: `${API_BASE}/history-searches`,
   INVOICE: `${API_BASE}/invoices`,
   INVOICE_DETAIL: `${API_BASE}/invoice-details`,

@@ -10,6 +10,9 @@ import {
   RectangleEllipsis,
   Ticket,
   Users,
+  BarChart,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -55,6 +58,14 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
   const menuItems: MenuItem[] = useMemo(() => {
     return [
       {
+        key: 'dashboard',
+        label: 'Thống kê & Báo cáo',
+        icon: <BarChart />,
+        subItems: [],
+        class: '',
+        isAllowed: true,
+      },
+      {
         key: 'users',
         label: 'Người dùng',
         icon: <Users />,
@@ -76,6 +87,12 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
           {
             key: 'categories',
             label: 'Quản lý danh mục',
+            class: 'px-4 py-2',
+            isAllowed: true,
+          },
+          {
+            key: 'tags',
+            label: 'Quản lý thẻ tag',
             class: 'px-4 py-2',
             isAllowed: true,
           },
@@ -176,23 +193,17 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
       >
         <div className="grow overflow-y-auto text-white">
           {!isShowing && (
-            <div
-              className="flex h-max items-center justify-center px-4 py-3"
-              onClick={handleArrowClick}
-            >
-              <Image
-                src="/images/logo/governance.png"
-                width={25}
-                height={25}
-                alt=""
-              />
+            <div className="flex h-max items-center justify-center px-4 py-3">
+              <span className="text-lg font-medium">HT</span>
             </div>
           )}
           {isShowing && (
             <div className="flex items-center justify-between rounded-sm bg-gradient-to-r from-dark-gray-70 to-dark-gray-80 px-4 py-3 font-medium tracking-wide text-white shadow-sm">
-              <span className="truncate text-lg transition-colors duration-200 hover:text-light-blue-40">
-                Hệ thống quản lý bảo tàng
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="truncate text-lg transition-colors duration-200 hover:text-light-blue-40">
+                  Hệ thống quản lý bảo tàng
+                </span>
+              </div>
             </div>
           )}
           <Divider />
@@ -280,38 +291,42 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
           </ul>
         </div>
         <Divider />
-        {!isShowing && (
-          <div className="w-full px-4 py-3 text-white">
-            <div className="bg-blue-8000 flex h-[25px] w-[25px] min-w-[25px] items-center justify-center rounded-full text-xs text-white">
-              Aa
-            </div>
-          </div>
-        )}
-        {isShowing && (
-          <Dropdown
-            data={actions}
-            hoverHighlight={false}
-            className="!dropdown-top !dropdown-content"
-            interClassName="absolute left-20 bottom-20"
-          >
-            <div className="flex items-center gap-x-5 overflow-hidden p-4">
-              <div className="flex w-full items-center gap-3">
-                <div className="bg-blue-8000 flex h-[36px] w-[36px] min-w-[36px] items-center justify-center rounded-full text-white">
-                  Aa
-                </div>
-                <div>
-                  <div className="text-md grow text-start font-medium text-white">
-                    {get(user, 'username')}
-                  </div>
-                  <div className="text-md grow text-start font-medium text-gray-400">
-                    {get(user, 'email')}
-                  </div>
-                </div>
+        <div className="overflow-y-auto px-4">
+          {!isShowing && (
+            <div className="flex w-full flex-col items-center gap-2">
+              <div className="bg-blue-8000 flex h-[25px] w-[25px] min-w-[25px] items-center justify-center rounded-full text-xs text-white">
+                Aa
               </div>
-              <MoreVertical size={24} className="text-gray-400" />
             </div>
-          </Dropdown>
-        )}
+          )}
+          {isShowing && (
+            <div className="flex flex-col gap-4">
+              <Dropdown
+                data={actions}
+                hoverHighlight={false}
+                className="!dropdown-top !dropdown-content"
+                interClassName="absolute left-20 bottom-20"
+              >
+                <div className="flex items-center gap-x-5 overflow-hidden rounded-lg bg-dark-gray-70 p-4">
+                  <div className="flex w-full items-center gap-3">
+                    <div className="bg-blue-8000 flex h-[36px] w-[36px] min-w-[36px] items-center justify-center rounded-full text-white">
+                      Aa
+                    </div>
+                    <div>
+                      <div className="text-md grow text-start font-medium text-white">
+                        {get(user, 'username')}
+                      </div>
+                      <div className="text-md grow text-start font-medium text-gray-400">
+                        {get(user, 'email')}
+                      </div>
+                    </div>
+                  </div>
+                  <MoreVertical size={24} className="text-gray-400" />
+                </div>
+              </Dropdown>
+            </div>
+          )}
+        </div>
       </div>
     )
   );

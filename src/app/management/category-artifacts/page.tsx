@@ -22,9 +22,11 @@ import { API_ROUTES } from '@/const/routes';
 import { fdAxios } from '@/config/axios.config';
 import qs from 'qs';
 import DynamicReactQuill from '@/components/DynamicReactQuill';
+import { get } from 'lodash';
 
 interface CategoryArtifact {
   id: number;
+  documentId: string;
   name: string;
   orderIndex: number;
   description?: string;
@@ -83,12 +85,13 @@ const CategoryArtifactManagement = () => {
       const formattedData: CategoryArtifactRecord[] = categoryData.map(
         (category: any) => ({
           id: category.id,
+          documentId: category.documentId || category.id.toString(),
           key: category.id.toString(),
           name: category.name,
           orderIndex: category.orderIndex || 0,
           description: category.description || '',
-          exhibits: category.exhibits || [],
-          exhibits_count: category.exhibits?.length || 0,
+          exhibits: category.exhibits?.data || [],
+          exhibits_count: category.exhibits?.data?.length || 0,
         })
       );
 
@@ -146,7 +149,9 @@ const CategoryArtifactManagement = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          await fdAxios.delete(`${API_ROUTES.CATEGORY_ARTIFACT}/${record.id}`);
+          await fdAxios.delete(
+            `${API_ROUTES.CATEGORY_ARTIFACT}/${record.documentId}`
+          );
           message.success('Đã xoá loại hiện vật thành công');
           fetchCategoryArtifacts();
         } catch (error) {
@@ -172,7 +177,7 @@ const CategoryArtifactManagement = () => {
       if (selectedRecord) {
         // Update existing category artifact
         await fdAxios.put(
-          `${API_ROUTES.CATEGORY_ARTIFACT}/${selectedRecord.id}`,
+          `${API_ROUTES.CATEGORY_ARTIFACT}/${selectedRecord.documentId}`,
           {
             data: {
               name: values.name,
@@ -189,6 +194,7 @@ const CategoryArtifactManagement = () => {
             name: values.name,
             orderIndex: values.orderIndex || 0,
             description: values.description || '',
+            documentId: Date.now().toString(), // Generate a unique documentId
           },
         });
         message.success('Thêm loại hiện vật thành công');
@@ -230,6 +236,11 @@ const CategoryArtifactManagement = () => {
       key: 'exhibits_count',
     },
     {
+      title: 'DocumentID',
+      dataIndex: 'documentId',
+      key: 'documentId',
+    },
+    {
       title: 'Thao tác',
       key: 'action',
       render: (_, record) => (
@@ -254,7 +265,7 @@ const CategoryArtifactManagement = () => {
   if (!mounted) return null;
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="mx-4 py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">
           Quản lý loại hiện vật
