@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Table, Input, Select, Tag, Modal, Form, message } from 'antd';
+import {
+  Button,
+  Table,
+  Input,
+  Select,
+  Tag,
+  Modal,
+  Form,
+  message,
+  Spin,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   PlusOutlined,
@@ -10,60 +20,43 @@ import {
   SearchOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
-import { Upload } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd/es/upload/interface';
 import DynamicReactQuill from '@/components/DynamicReactQuill';
+import {
+  getTickets,
+  createTicket,
+  updateTicket,
+  deleteTicket,
+} from '@/request/tickets';
+
+interface StrapiTicket {
+  id: number;
+  name: string;
+  price: number;
+  type: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface TicketRecord {
   key: string;
+  id: number;
   name: string;
-  price: string;
+  price: string | number;
   type: string;
   description: string;
   create_at: string;
   update_at: string;
-  image?: UploadFile[];
   created_by?: string;
 }
 
 const TicketsManagement = () => {
   const [mounted, setMounted] = useState(false);
-  const [data, setData] = useState<TicketRecord[]>([
-    {
-      key: '1',
-      name: 'Vé vào cổng người lớn',
-      price: '40.000đ',
-      type: 'Vé lẻ',
-      description:
-        'Áp dụng cho khách từ 18 tuổi trở lên. Có hiệu lực trong ngày.',
-      create_at: '10/03/2024',
-      update_at: '12/03/2024',
-    },
-    {
-      key: '2',
-      name: 'Vé vào cổng trẻ em',
-      price: '20.000đ',
-      type: 'Vé lẻ',
-      description:
-        'Áp dụng cho trẻ em từ 6 đến 17 tuổi. Miễn phí cho trẻ dưới 6 tuổi.',
-      create_at: '10/03/2024',
-      update_at: '12/03/2024',
-    },
-    {
-      key: '3',
-      name: 'Vé đoàn tham quan',
-      price: '150.000đ',
-      type: 'Vé đoàn',
-      description:
-        'Dành cho đoàn từ 10 người trở lên. Hướng dẫn viên miễn phí.',
-      create_at: '10/03/2024',
-      update_at: '12/03/2024',
-    },
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<TicketRecord[]>([]);
 
-  const [isModalVisible, setIsModalVisible] = useState(false); // State để điều khiển hiển thị modal
-  const [form] = Form.useForm(); // Form instance
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
   const [selectedRecord, setSelectedRecord] = useState<TicketRecord | null>(
     null
   );
@@ -73,7 +66,70 @@ const TicketsManagement = () => {
     name: '',
     type: '',
   });
-  const [filteredData, setFilteredData] = useState<TicketRecord[]>(data);
+  const [filteredData, setFilteredData] = useState<TicketRecord[]>([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  // Fetch tickets from API
+  const fetchTickets = async (
+    page = pagination.current,
+    pageSize = pagination.pageSize
+  ) => {
+    try {
+      setLoading(true);
+      const response = await getTickets(
+        page,
+        pageSize,
+        searchFilters.name,
+        searchFilters.type
+      );
+
+      if (response && response.data) {
+        const ticketsData = response.data.map((ticket: StrapiTicket) => ({
+          key: ticket.id.toString(),
+          id: ticket.id,
+          name: ticket.name,
+          price: formatPrice(ticket.price),
+          type: ticket.type,
+          description: ticket.description,
+          create_at: new Date(ticket.createdAt).toLocaleDateString(),
+          update_at: new Date(ticket.updatedAt).toLocaleDateString(),
+        }));
+
+        setData(ticketsData);
+        setFilteredData(ticketsData);
+        setPagination({
+          ...pagination,
+          current: page,
+          total: response.meta.pagination.total,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      message.error('Không thể tải dữ liệu vé');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format price from number to string with VND format
+  const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+    })
+      .format(price)
+      .replace('₫', 'đ');
+  };
+
+  // Parse price from string back to number
+  const parsePrice = (price: string): number => {
+    return parseInt(price.replace(/\D/g, ''));
+  };
 
   // Safe access to localStorage after component is mounted
   useEffect(() => {
@@ -82,15 +138,17 @@ const TicketsManagement = () => {
     if (username) {
       setCurrentUser(username);
     }
+
+    fetchTickets();
   }, []);
 
   // Hàm hiển thị modal thêm mới
   const showModal = () => {
-    setSelectedRecord(null); //  Reset bản ghi đang chọn
-    setIsViewMode(false); //  Đảm bảo không đang ở chế độ xem
-    form.setFieldsValue({ created_by: currentUser }); // Gán username vào form
-    setIsModalVisible(true); //  Mở modal
-    form.resetFields(); // Reset form về rỗng
+    setSelectedRecord(null);
+    setIsViewMode(false);
+    form.setFieldsValue({ created_by: currentUser });
+    setIsModalVisible(true);
+    form.resetFields();
   };
 
   const handleEdit = () => {
@@ -101,7 +159,7 @@ const TicketsManagement = () => {
 
     form.setFieldsValue({
       ...selectedRecord,
-      image: selectedRecord.image || [], //  Gán fileList vào form
+      price: selectedRecord.price.toString(),
     });
 
     setIsViewMode(false);
@@ -109,16 +167,7 @@ const TicketsManagement = () => {
   };
 
   const handleSearch = () => {
-    const filtered = data.filter((item: TicketRecord) => {
-      const matchesName = item.name
-        .toLowerCase()
-        .includes(searchFilters.name.trim().toLowerCase());
-      const matchesType = searchFilters.type
-        ? item.type === searchFilters.type
-        : true;
-      return matchesName && matchesType;
-    });
-    setFilteredData(filtered);
+    fetchTickets(1, pagination.pageSize);
   };
 
   const handleView = () => {
@@ -129,9 +178,10 @@ const TicketsManagement = () => {
 
     form.setFieldsValue({
       ...selectedRecord,
+      price: selectedRecord.price.toString(),
     });
 
-    setIsViewMode(true); // Bật chế độ xem
+    setIsViewMode(true);
     setIsModalVisible(true);
   };
 
@@ -147,12 +197,21 @@ const TicketsManagement = () => {
       okText: 'OK',
       okType: 'danger',
       cancelText: 'Hủy',
-      onOk: () => {
-        const newData = data.filter((item) => item.key !== selectedRecord.key);
-        setData(newData);
-        setFilteredData(newData); // Thêm dòng này để cập nhật lưới hiển thị
-        setSelectedRecord(null);
-        message.success('Đã xoá vé');
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await deleteTicket(selectedRecord.id);
+
+          // Refresh the list
+          fetchTickets();
+          setSelectedRecord(null);
+          message.success('Đã xoá vé thành công');
+        } catch (error) {
+          console.error('Error deleting ticket:', error);
+          message.error('Không thể xoá vé');
+        } finally {
+          setLoading(false);
+        }
       },
     });
   };
@@ -160,64 +219,51 @@ const TicketsManagement = () => {
   // Hàm đóng modal
   const handleCancel = () => {
     setIsModalVisible(false);
-    form.resetFields(); // Reset form khi đóng modal
+    form.resetFields();
     setSelectedRecord(null);
     setIsViewMode(false);
   };
 
   // Hàm xử lý khi nhấn nút Lưu
   const handleSave = () => {
-    form.validateFields().then((values) => {
-      const imageFile = values.image?.fileList || [];
+    form.validateFields().then(async (values) => {
+      try {
+        setLoading(true);
 
-      if (selectedRecord) {
-        //  Nếu đang sửa
-        const updatedData = data.map((item) =>
-          item.key === selectedRecord.key
-            ? {
-                ...item,
-                ...values,
-                image: imageFile,
-                update_at: new Date().toLocaleDateString(),
-              }
-            : item
-        );
-
-        //  Sắp xếp theo ngày cập nhật mới nhất
-        const sortedData = updatedData.sort(
-          (a: TicketRecord, b: TicketRecord) =>
-            new Date(b.update_at).getTime() - new Date(a.update_at).getTime()
-        );
-
-        setData(sortedData);
-        setFilteredData(sortedData);
-        message.success('Cập nhật vé thành công');
-      } else {
-        //  Nếu thêm mới
-        const newData: TicketRecord = {
-          key: (data.length + 1).toString(),
-          ...values,
-          created_by: values.created_by || currentUser,
-          image: imageFile,
-          create_at: new Date().toLocaleDateString(),
-          update_at: new Date().toLocaleDateString(),
+        // Prepare data for API
+        const ticketData = {
+          name: values.name,
+          price: parsePrice(values.price),
+          type: values.type,
+          description: values.description,
         };
 
-        const newDataList = [...data, newData];
-        //  Sắp xếp theo ngày tạo mới nhất
-        const sortedDataList = newDataList.sort(
-          (a: TicketRecord, b: TicketRecord) =>
-            new Date(b.create_at).getTime() - new Date(a.create_at).getTime()
-        );
+        if (selectedRecord) {
+          // Update existing ticket
+          await updateTicket(selectedRecord.id, ticketData);
+          message.success('Cập nhật vé thành công');
+        } else {
+          // Create new ticket
+          await createTicket(ticketData);
+          message.success('Thêm mới vé thành công');
+        }
 
-        setData(sortedDataList);
-        setFilteredData(sortedDataList);
-        message.success('Thêm mới vé thành công');
+        // Refresh the list
+        fetchTickets();
+        setIsModalVisible(false);
+        form.resetFields();
+      } catch (error) {
+        console.error('Error saving ticket:', error);
+        message.error('Không thể lưu thông tin vé');
+      } finally {
+        setLoading(false);
       }
-
-      setIsModalVisible(false);
-      form.resetFields();
     });
+  };
+
+  // Handle pagination change
+  const handleTableChange = (pagination: any) => {
+    fetchTickets(pagination.current, pagination.pageSize);
   };
 
   // Định nghĩa các cột cho Table
@@ -326,23 +372,24 @@ const TicketsManagement = () => {
       </div>
 
       {/* Bảng dữ liệu */}
-      <Table
-        columns={columns}
-        dataSource={filteredData}
-        rowKey="key"
-        pagination={{ pageSize: 10 }}
-        //  Thêm onRow để bắt sự kiện click vào row
-        onRow={(record) => ({
-          onClick: () => {
-            setSelectedRecord(record);
-          },
-          //  Thêm style khi row được chọn
-          style: {
-            background:
-              selectedRecord?.key === record.key ? '#e6f7ff' : 'inherit',
-          },
-        })}
-      />
+      <Spin spinning={loading}>
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          rowKey="key"
+          pagination={pagination}
+          onChange={handleTableChange}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelectedRecord(record);
+            },
+            style: {
+              background:
+                selectedRecord?.key === record.key ? '#e6f7ff' : 'inherit',
+            },
+          })}
+        />
+      </Spin>
 
       {/* Modal thêm/sửa */}
       <Modal
@@ -366,7 +413,12 @@ const TicketsManagement = () => {
                 <Button key="back" onClick={handleCancel}>
                   Hủy
                 </Button>,
-                <Button key="submit" type="primary" onClick={handleSave}>
+                <Button
+                  key="submit"
+                  type="primary"
+                  onClick={handleSave}
+                  loading={loading}
+                >
                   Lưu
                 </Button>,
               ]
@@ -376,7 +428,7 @@ const TicketsManagement = () => {
         <Form
           form={form}
           layout="vertical"
-          disabled={isViewMode}
+          disabled={isViewMode || loading}
           className="mt-4"
         >
           <Form.Item
@@ -392,7 +444,7 @@ const TicketsManagement = () => {
             label="Giá vé"
             rules={[{ required: true, message: 'Vui lòng nhập giá vé!' }]}
           >
-            <Input placeholder="Ví dụ: 50.000đ" />
+            <Input placeholder="Ví dụ: 50000" />
           </Form.Item>
 
           <Form.Item
@@ -415,17 +467,7 @@ const TicketsManagement = () => {
             label="Mô tả"
             rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
           >
-            <DynamicReactQuill theme="snow" style={{ height: 120 }} />
-          </Form.Item>
-
-          <Form.Item name="image" label="Hình ảnh">
-            <Upload
-              listType="picture"
-              maxCount={1}
-              beforeUpload={() => false} // Tránh auto upload
-            >
-              <Button icon={<UploadOutlined />}>Tải lên hình vé</Button>
-            </Upload>
+            <Input.TextArea rows={4} placeholder="Nhập mô tả vé" />
           </Form.Item>
         </Form>
       </Modal>

@@ -26,4 +26,5 @@ export const API_ROUTES = {
   INVOICE_DETAIL: `${API_BASE}/invoice-details`,
   EMAIL_SERVICE: `${API_BASE}/email`,
   ACTIVITY_POINTS: `${API_BASE}/actions`,
+  TICKETS: `${API_BASE}/tickets`,
 };
