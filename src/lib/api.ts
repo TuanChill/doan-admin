@@ -5,7 +5,7 @@ import qs from 'qs';
 /**
  * Fetch invoices with related data
  */
-export const fetchInvoices = async () => {
+export const fetchInvoices = async (pageSize = 10) => {
   const query = qs.stringify(
     {
       populate: {
@@ -24,6 +24,9 @@ export const fetchInvoices = async () => {
         },
       },
       sort: ['updatedAt:desc'],
+      pagination: {
+        pageSize: pageSize,
+      },
     },
     {
       encodeValuesOnly: true,
@@ -36,7 +39,7 @@ export const fetchInvoices = async () => {
 /**
  * Update invoice status
  */
-export const updateInvoiceStatus = async (invoiceId: number, isUsed: boolean) => {
+export const updateInvoiceStatus = async (invoiceId: string, isUsed: boolean) => {
   return fdAxios.put(`${API_ROUTES.INVOICE}/${invoiceId}`, {
     data: {
       isUsed: isUsed,
@@ -44,19 +47,6 @@ export const updateInvoiceStatus = async (invoiceId: number, isUsed: boolean) =>
   });
 };
 
-/**
- * Send invoice email
- */
-export const sendInvoiceEmail = async (invoiceId: number, email: string) => {
-  const emailEndpoint = API_ROUTES.EMAIL_SERVICE
-    ? `${API_ROUTES.EMAIL_SERVICE}/send-ticket`
-    : '/api/email/send-invoice';
-
-  return fdAxios.post(emailEndpoint, {
-    invoiceId: invoiceId,
-    email: email,
-  });
-};
 
 /**
  * Fetch all users count

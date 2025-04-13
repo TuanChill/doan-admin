@@ -31,6 +31,7 @@ import * as api from '@/lib/api';
 
 // Interface for invoice data based on Strapi schema
 interface Invoice {
+  documentId: string;
   id: number;
   totalPrice: number;
   phoneNumber: string;
@@ -71,6 +72,7 @@ const InvoiceManagement = () => {
     [dayjs.Dayjs | null, dayjs.Dayjs | null]
   >([null, null]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
 
   // Drawer state for viewing invoice details
   const [detailsVisible, setDetailsVisible] = useState(false);
@@ -80,6 +82,16 @@ const InvoiceManagement = () => {
 
   const { RangePicker } = DatePicker;
   const { Option } = Select;
+
+  // Handle page size change
+  const handlePageSizeChange = (current: number, size: number) => {
+    setPageSize(size);
+  };
+
+  // Fetch invoices when pageSize changes
+  useEffect(() => {
+    fetchInvoices();
+  }, [pageSize]);
 
   // Safe initialization after component is mounted
   useEffect(() => {
@@ -91,13 +103,14 @@ const InvoiceManagement = () => {
     try {
       setLoading(true);
 
-      const response = await api.fetchInvoices();
+      const response = await api.fetchInvoices(pageSize);
       const invoiceData = response.data.data || [];
 
       // Transform the data to match our component's structure
       const formattedData: InvoiceRecord[] = invoiceData.map(
         (invoice: any) => ({
           id: invoice.id,
+          documentId: invoice.documentId,
           key: invoice.id.toString(),
           totalPrice: invoice.totalPrice || 0,
           phoneNumber: invoice.phoneNumber || '',
@@ -115,7 +128,7 @@ const InvoiceManagement = () => {
               }
             : null,
           invoice_details:
-            invoice.invoice_details?.data?.map((detail: any) => ({
+            invoice.invoice_details?.map((detail: any) => ({
               id: detail.id,
               quantity: detail.quantity,
               price: detail.price,
@@ -133,7 +146,7 @@ const InvoiceManagement = () => {
                   }
                 : null,
             })) || [],
-          details_count: invoice.invoice_details?.data?.length || 0,
+          details_count: invoice.invoice_details?.length || 0,
         })
       );
 
@@ -170,7 +183,7 @@ const InvoiceManagement = () => {
     }
 
     // Date range filter
-    if (dateRange[0] && dateRange[1]) {
+    if (dateRange && dateRange[0] && dateRange[1]) {
       const startDate = dateRange[0].startOf('day');
       const endDate = dateRange[1].endOf('day');
 
@@ -214,7 +227,7 @@ const InvoiceManagement = () => {
       setLoading(true);
       const newStatus = !invoice.isUsed;
 
-      await api.updateInvoiceStatus(invoice.id, newStatus);
+      await api.updateInvoiceStatus(invoice.documentId, newStatus);
 
       message.success(
         `Hóa đơn đã được đánh dấu là ${newStatus ? 'đã sử dụng' : 'chưa sử dụng'}`
@@ -228,17 +241,27 @@ const InvoiceManagement = () => {
     }
   };
 
-  // Send invoice via email
-  const sendInvoiceEmail = async (invoice: InvoiceRecord) => {
+  // Download ticket as blob
+  const downloadTicket = async (ticketUrl: string, fileName: string) => {
     try {
       setLoading(true);
-
-      await api.sendInvoiceEmail(invoice.id, invoice.email);
-
-      message.success(`Hóa đơn đã được gửi tới ${invoice.email}`);
+      const response = await fetch(ticketUrl);
+      const blob = await response.blob();
+      const contentType = response.headers.get('content-type');
+      const extension = contentType?.includes('image/')
+        ? contentType.split('/')[1] || 'jpg'
+        : 'pdf';
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName.split('.')[0]}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
-      console.error('Error sending invoice email:', error);
-      message.error('Không thể gửi email hóa đơn');
+      console.error('Error downloading ticket:', error);
+      message.error('Không thể tải vé');
     } finally {
       setLoading(false);
     }
@@ -251,13 +274,11 @@ const InvoiceManagement = () => {
       dataIndex: 'transId',
       key: 'transId',
       ellipsis: true,
-      sorter: (a, b) => a.transId.localeCompare(b.transId),
     },
     {
       title: 'Khách hàng',
       dataIndex: 'fullName',
       key: 'fullName',
-      sorter: (a, b) => a.fullName.localeCompare(b.fullName),
       render: (text, record) => (
         <div>
           <div>{text}</div>
@@ -270,15 +291,12 @@ const InvoiceManagement = () => {
       title: 'Tổng tiền',
       dataIndex: 'totalPrice',
       key: 'totalPrice',
-      sorter: (a, b) => a.totalPrice - b.totalPrice,
       render: (price) => formatCurrency(price),
     },
     {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      sorter: (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       render: (date) => formatDate(date),
     },
     {
@@ -332,21 +350,23 @@ const InvoiceManagement = () => {
               <Button
                 type="default"
                 icon={<FilePdfOutlined />}
-                onClick={() => window.open(record.ticketUrl, '_blank')}
+                onClick={() =>
+                  downloadTicket(
+                    record.ticketUrl,
+                    `ticket-${record.transId}.pdf`
+                  )
+                }
               />
             </Tooltip>
           )}
-          <Tooltip title="Gửi email">
-            <Button
-              type="default"
-              icon={<MailOutlined />}
-              onClick={() => sendInvoiceEmail(record)}
-            />
-          </Tooltip>
         </Space>
       ),
     },
   ];
+
+  useEffect(() => {
+    console.log('selectedInvoice', selectedInvoice);
+  }, [selectedInvoice]);
 
   // Check before rendering
   if (!mounted) return null;
@@ -355,9 +375,6 @@ const InvoiceManagement = () => {
     <div className="mx-4 py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý hóa đơn</h1>
-        <Button type="primary" onClick={fetchInvoices}>
-          Làm mới dữ liệu
-        </Button>
       </div>
 
       {/* Filter controls */}
@@ -395,10 +412,11 @@ const InvoiceManagement = () => {
           columns={columns}
           rowKey="key"
           pagination={{
-            pageSize: 10,
+            pageSize: pageSize,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50'],
             showTotal: (total) => `Tổng cộng ${total} hóa đơn`,
+            onShowSizeChange: handlePageSizeChange,
           }}
         />
       </Spin>
@@ -554,22 +572,15 @@ const InvoiceManagement = () => {
                   type="primary"
                   icon={<FilePdfOutlined />}
                   onClick={() =>
-                    window.open(selectedInvoice.ticketUrl, '_blank')
+                    downloadTicket(
+                      selectedInvoice.ticketUrl,
+                      `ticket-${selectedInvoice.transId}.pdf`
+                    )
                   }
                 >
-                  Xem vé
+                  Tải vé
                 </Button>
               )}
-              <Button
-                type="default"
-                icon={<MailOutlined />}
-                onClick={() => {
-                  sendInvoiceEmail(selectedInvoice);
-                  setDetailsVisible(false);
-                }}
-              >
-                Gửi lại vé qua email
-              </Button>
             </div>
           </>
         )}
