@@ -15,6 +15,7 @@ import {
   DatePicker,
   Space,
   Spin,
+  Dropdown,
 } from 'antd';
 import {
   PlusOutlined,
@@ -23,6 +24,7 @@ import {
   SearchOutlined,
   EyeOutlined,
   LoadingOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { API_ROUTES } from '@/const/routes';
@@ -485,6 +487,50 @@ const PostsManagement = () => {
       width: 150,
       render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
     },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 100,
+      render: (_: any, record: PostRecord) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'view',
+                label: 'Xem',
+                icon: <EyeOutlined />,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleView();
+                },
+              },
+              {
+                key: 'edit',
+                label: 'Sửa',
+                icon: <EditOutlined />,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleEdit();
+                },
+              },
+              {
+                key: 'delete',
+                label: 'Xóa',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleDelete();
+                },
+              },
+            ],
+          }}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      ),
+    },
   ];
 
   // Helper function to get upload button
@@ -506,15 +552,17 @@ const PostsManagement = () => {
 
       {/* Search and filter toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-4 bg-white p-4 shadow-sm">
-        <Input
-          placeholder="Tìm theo tiêu đề"
-          value={searchFilters.title}
-          onChange={(e) =>
-            setSearchFilters({ ...searchFilters, title: e.target.value })
-          }
-          style={{ width: 200 }}
-          prefix={<SearchOutlined />}
-        />
+        <div className="relative w-full max-w-md">
+          <SearchOutlined className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+          <Input
+            placeholder="Tìm theo tiêu đề"
+            value={searchFilters.title}
+            onChange={(e) =>
+              setSearchFilters({ ...searchFilters, title: e.target.value })
+            }
+            className="pl-10 text-gray-900"
+          />
+        </div>
         <Select
           placeholder="Danh mục"
           allowClear
@@ -541,35 +589,25 @@ const PostsManagement = () => {
             { value: 'false', label: 'Không nổi bật' },
           ]}
         />
-        <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
+        <Button
+          onClick={handleSearch}
+          className="bg-gray-900 text-white hover:bg-gray-800"
+        >
           Tìm kiếm
         </Button>
-        <Button onClick={resetSearchFilters}>Xoá bộ lọc</Button>
+        <Button
+          onClick={resetSearchFilters}
+          className="text-gray-700 hover:text-gray-900"
+        >
+          Xoá bộ lọc
+        </Button>
         <div style={{ marginLeft: 'auto' }}>
           <Button
-            type="primary"
             onClick={showModal}
-            icon={<PlusOutlined />}
-            style={{ marginRight: 8 }}
+            className="bg-gray-900 text-white hover:bg-gray-800"
           >
+            <PlusOutlined className="mr-2" />
             Thêm mới
-          </Button>
-          <Button
-            onClick={handleView}
-            icon={<EyeOutlined />}
-            style={{ marginRight: 8 }}
-          >
-            Xem
-          </Button>
-          <Button
-            onClick={handleEdit}
-            icon={<EditOutlined />}
-            style={{ marginRight: 8 }}
-          >
-            Sửa
-          </Button>
-          <Button danger onClick={handleDelete} icon={<DeleteOutlined />}>
-            Xóa
           </Button>
         </div>
       </div>

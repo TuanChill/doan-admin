@@ -4,7 +4,15 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'boolean-dev.s3.ap-southeast-1.amazonaws.com',
+        hostname: 'api.luongtuan.xyz',
+      },
+      {
+        protocol: 'https',
+        hostname: 'mediafile.qdnd.vn',
+      },
+      {
+        protocol: 'https',
+        hostname: 'vnanet.vn',
       },
     ],
   },

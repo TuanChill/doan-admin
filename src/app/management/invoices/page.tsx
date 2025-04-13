@@ -318,6 +318,7 @@ const InvoiceManagement = () => {
     {
       title: 'Thao tác',
       key: 'action',
+      width: 200,
       render: (_, record) => (
         <Space>
           <Tooltip title="Xem chi tiết">
@@ -384,6 +385,7 @@ const InvoiceManagement = () => {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           prefix={<SearchOutlined />}
+          allowClear
           className="max-w-xs"
         />
 
