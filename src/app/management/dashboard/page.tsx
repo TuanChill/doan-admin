@@ -31,8 +31,29 @@ import {
 import * as api from '@/lib/api';
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
+import {
+  mockSummaryData,
+  mockMonthlySales,
+  mockTopItems,
+  mockRecentInvoices,
+} from '@/lib/mockData';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
-interface SummaryData {
+export interface SummaryData {
   userCount: number;
   exhibitCount: number;
   postCount: number;
@@ -42,20 +63,20 @@ interface SummaryData {
   unusedTicketsCount: number;
 }
 
-interface MonthlySales {
+export interface MonthlySales {
   month: string;
   salesAmount: number;
   salesCount: number;
 }
 
-interface TopItem {
+export interface TopItem {
   name: string;
   quantity: number;
   revenue: number;
   type: 'ticket' | 'service';
 }
 
-interface RecentInvoice {
+export interface RecentInvoice {
   id: number;
   key: string;
   transId: string;
@@ -67,19 +88,13 @@ interface RecentInvoice {
 
 const DashboardPage = () => {
   const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState<SummaryData>({
-    userCount: 0,
-    exhibitCount: 0,
-    postCount: 0,
-    invoiceCount: 0,
-    totalSales: 0,
-    usedTicketsCount: 0,
-    unusedTicketsCount: 0,
-  });
-  const [monthlySales, setMonthlySales] = useState<MonthlySales[]>([]);
-  const [topItems, setTopItems] = useState<TopItem[]>([]);
-  const [recentInvoices, setRecentInvoices] = useState<RecentInvoice[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<SummaryData>(mockSummaryData);
+  const [monthlySales, setMonthlySales] =
+    useState<MonthlySales[]>(mockMonthlySales);
+  const [topItems, setTopItems] = useState<TopItem[]>(mockTopItems);
+  const [recentInvoices, setRecentInvoices] =
+    useState<RecentInvoice[]>(mockRecentInvoices);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedTab, setSelectedTab] = useState('1');
 
@@ -95,55 +110,13 @@ const DashboardPage = () => {
   const fetchAllStats = async () => {
     try {
       setLoading(true);
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Fetch counts in parallel
-      const [
-        usersCountRes,
-        exhibitsCountRes,
-        postsCountRes,
-        salesStatsRes,
-        salesByMonthRes,
-        recentInvoicesRes,
-        topSellingRes,
-      ] = await Promise.all([
-        api.fetchUsersCount(),
-        api.fetchExhibitsCount(),
-        api.fetchPostsCount(),
-        api.fetchSalesStats(),
-        api.fetchSalesByMonth(selectedYear),
-        api.fetchRecentInvoices(5),
-        api.fetchTopSelling(),
-      ]);
-
-      // Process summary data
-      const invoices = salesStatsRes.data.data || [];
-      const totalSales = invoices.reduce((sum: number, invoice: any) => {
-        return sum + (parseInt(invoice.attributes.totalPrice) || 0);
-      }, 0);
-
-      const usedTickets = invoices.filter(
-        (invoice: any) => invoice.attributes.isUsed
-      ).length;
-      const unusedTickets = invoices.length - usedTickets;
-
-      setSummary({
-        userCount: usersCountRes.data || 0,
-        exhibitCount: exhibitsCountRes.data || 0,
-        postCount: postsCountRes.data || 0,
-        invoiceCount: invoices.length,
-        totalSales: totalSales,
-        usedTicketsCount: usedTickets,
-        unusedTicketsCount: unusedTickets,
-      });
-
-      // Process monthly sales data
-      processMonthlyData(salesByMonthRes.data.data || []);
-
-      // Process recent invoices
-      processRecentInvoices(recentInvoicesRes.data.data || []);
-
-      // Process top selling items
-      processTopSellingItems(topSellingRes.data.data || []);
+      setSummary(mockSummaryData);
+      setMonthlySales(mockMonthlySales);
+      setRecentInvoices(mockRecentInvoices);
+      setTopItems(mockTopItems);
     } catch (error) {
       console.error('Error fetching dashboard statistics:', error);
       message.error('Không thể tải dữ liệu thống kê');
@@ -151,134 +124,6 @@ const DashboardPage = () => {
       setLoading(false);
     }
   };
-
-  // Process monthly sales data
-  const processMonthlyData = (invoices: any[]) => {
-    const monthNames = [
-      'Tháng 1',
-      'Tháng 2',
-      'Tháng 3',
-      'Tháng 4',
-      'Tháng 5',
-      'Tháng 6',
-      'Tháng 7',
-      'Tháng 8',
-      'Tháng 9',
-      'Tháng 10',
-      'Tháng 11',
-      'Tháng 12',
-    ];
-
-    // Initialize monthly data
-    const monthlyData: MonthlySales[] = monthNames.map((month, index) => ({
-      month,
-      salesAmount: 0,
-      salesCount: 0,
-    }));
-
-    // Aggregate sales by month
-    invoices.forEach((invoice: any) => {
-      const createdAt = new Date(invoice.attributes.createdAt);
-      const monthIndex = createdAt.getMonth();
-      const amount = parseInt(invoice.attributes.totalPrice) || 0;
-
-      monthlyData[monthIndex].salesAmount += amount;
-      monthlyData[monthIndex].salesCount += 1;
-    });
-
-    setMonthlySales(monthlyData);
-  };
-
-  // Process recent invoices
-  const processRecentInvoices = (invoices: any[]) => {
-    const formattedInvoices: RecentInvoice[] = invoices.map((invoice: any) => ({
-      id: invoice.id,
-      key: invoice.id.toString(),
-      transId: invoice.attributes.transId || '',
-      fullName: invoice.attributes.fullName || '',
-      totalPrice: invoice.attributes.totalPrice || 0,
-      isUsed: invoice.attributes.isUsed || false,
-      createdAt: invoice.attributes.createdAt || '',
-    }));
-
-    setRecentInvoices(formattedInvoices);
-  };
-
-  // Process top selling items
-  const processTopSellingItems = (invoices: any[]) => {
-    const itemMap = new Map<
-      string,
-      {
-        name: string;
-        quantity: number;
-        revenue: number;
-        type: 'ticket' | 'service';
-      }
-    >();
-
-    // Extract all invoice details and group by item
-    invoices.forEach((invoice: any) => {
-      const details = invoice.attributes.invoice_details?.data || [];
-
-      details.forEach((detail: any) => {
-        const ticket = detail.attributes.ticket?.data;
-        const service = detail.attributes.service?.data;
-
-        if (ticket) {
-          const name = ticket.attributes.name;
-          const key = `ticket-${ticket.id}`;
-          const quantity = detail.attributes.quantity || 0;
-          const price = detail.attributes.price || 0;
-
-          if (itemMap.has(key)) {
-            const item = itemMap.get(key)!;
-            item.quantity += quantity;
-            item.revenue += price;
-          } else {
-            itemMap.set(key, {
-              name,
-              quantity,
-              revenue: price,
-              type: 'ticket',
-            });
-          }
-        }
-
-        if (service) {
-          const name = service.attributes.name;
-          const key = `service-${service.id}`;
-          const quantity = detail.attributes.quantity || 0;
-          const price = detail.attributes.price || 0;
-
-          if (itemMap.has(key)) {
-            const item = itemMap.get(key)!;
-            item.quantity += quantity;
-            item.revenue += price;
-          } else {
-            itemMap.set(key, {
-              name,
-              quantity,
-              revenue: price,
-              type: 'service',
-            });
-          }
-        }
-      });
-    });
-
-    // Convert map to array and sort by quantity
-    const sortedItems = Array.from(itemMap.values())
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 5);
-
-    setTopItems(sortedItems);
-  };
-
-  useEffect(() => {
-    if (mounted) {
-      fetchAllStats();
-    }
-  }, [mounted, selectedYear]);
 
   // Format currency for display
   const formatCurrency = (amount: number) => {
@@ -376,6 +221,9 @@ const DashboardPage = () => {
     yearOptions.push({ value: i, label: `Năm ${i}` });
   }
 
+  // Colors for charts
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
   // Check before rendering
   if (!mounted) return null;
 
@@ -454,22 +302,37 @@ const DashboardPage = () => {
               <h3 className="mb-4 text-lg font-medium">
                 Biểu đồ doanh thu theo tháng (năm {selectedYear})
               </h3>
-              <div className="mt-8">
-                {monthlySales.map((item, index) => (
-                  <div key={index} className="mb-4">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span>{item.month}</span>
-                      <span>{formatCurrency(item.salesAmount)}</span>
-                    </div>
-                    <Progress
-                      percent={Math.round(
-                        (item.salesAmount / maxSalesAmount) * 100
-                      )}
-                      showInfo={false}
-                      strokeColor="#1890ff"
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlySales}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis
+                      tickFormatter={(value: number) =>
+                        new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND',
+                          maximumFractionDigits: 0,
+                        }).format(value)
+                      }
                     />
-                  </div>
-                ))}
+                    <Tooltip
+                      formatter={(value: number) =>
+                        new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND',
+                          maximumFractionDigits: 0,
+                        }).format(value)
+                      }
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="salesAmount"
+                      name="Doanh thu"
+                      fill="#1890ff"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </TabPane>
@@ -486,22 +349,23 @@ const DashboardPage = () => {
               <h3 className="mb-4 text-lg font-medium">
                 Biểu đồ số lượng hóa đơn theo tháng (năm {selectedYear})
               </h3>
-              <div className="mt-8">
-                {monthlySales.map((item, index) => (
-                  <div key={index} className="mb-4">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span>{item.month}</span>
-                      <span>{item.salesCount} hóa đơn</span>
-                    </div>
-                    <Progress
-                      percent={Math.round(
-                        (item.salesCount / maxSalesCount) * 100
-                      )}
-                      showInfo={false}
-                      strokeColor="#ff7a45"
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlySales}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="salesCount"
+                      name="Số lượng hóa đơn"
+                      stroke="#ff7a45"
+                      activeDot={{ r: 8 }}
                     />
-                  </div>
-                ))}
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </TabPane>
@@ -518,35 +382,41 @@ const DashboardPage = () => {
               <h3 className="mb-4 text-lg font-medium">
                 Thống kê trạng thái vé
               </h3>
-              <div className="flex items-center justify-around p-10">
-                <div className="text-center">
-                  <Progress
-                    type="circle"
-                    percent={Math.round(
-                      (summary.usedTicketsCount /
-                        (summary.usedTicketsCount +
-                          summary.unusedTicketsCount || 1)) *
-                        100
-                    )}
-                    format={() => `${summary.usedTicketsCount}`}
-                    strokeColor="#52c41a"
-                  />
-                  <p className="mt-4 font-medium">Đã sử dụng</p>
-                </div>
-                <div className="text-center">
-                  <Progress
-                    type="circle"
-                    percent={Math.round(
-                      (summary.unusedTicketsCount /
-                        (summary.usedTicketsCount +
-                          summary.unusedTicketsCount || 1)) *
-                        100
-                    )}
-                    format={() => `${summary.unusedTicketsCount}`}
-                    strokeColor="#1890ff"
-                  />
-                  <p className="mt-4 font-medium">Chưa sử dụng</p>
-                </div>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        {
+                          name: 'Đã sử dụng',
+                          value: summary.usedTicketsCount,
+                        },
+                        {
+                          name: 'Chưa sử dụng',
+                          value: summary.unusedTicketsCount,
+                        },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({
+                        name,
+                        percent,
+                      }: {
+                        name: string;
+                        percent: number;
+                      }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={150}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      <Cell fill="#52c41a" />
+                      <Cell fill="#1890ff" />
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </TabPane>
@@ -605,24 +475,39 @@ const DashboardPage = () => {
         {/* Top items visualization */}
         <div className="mt-6 rounded-lg bg-white p-6 shadow">
           <h3 className="mb-4 text-lg font-medium">Sản phẩm bán chạy</h3>
-          <div className="mt-8">
-            {topItems.map((item, index) => (
-              <div key={index} className="mb-4">
-                <div className="mb-1 flex items-center justify-between">
-                  <span>
-                    {item.name} ({item.type === 'ticket' ? 'Vé' : 'Dịch vụ'})
-                  </span>
-                  <span>{item.quantity} sản phẩm</span>
-                </div>
-                <Progress
-                  percent={Math.round(
-                    (item.quantity / (topItems[0]?.quantity || 1)) * 100
-                  )}
-                  showInfo={false}
-                  strokeColor={item.type === 'ticket' ? '#722ed1' : '#eb2f96'}
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={topItems}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={150}
+                  tick={{ fontSize: 12 }}
                 />
-              </div>
-            ))}
+                <Tooltip
+                  formatter={(value: number) =>
+                    new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                      maximumFractionDigits: 0,
+                    }).format(value)
+                  }
+                />
+                <Legend />
+                <Bar
+                  dataKey="revenue"
+                  name="Doanh thu"
+                  fill="#8884d8"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </Spin>
