@@ -25,6 +25,7 @@ import {
   EyeOutlined,
   LoadingOutlined,
   MoreOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { API_ROUTES } from '@/const/routes';
@@ -552,15 +553,24 @@ const PostsManagement = () => {
 
       {/* Search and filter toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-4 bg-white p-4 shadow-sm">
-        <div className="relative w-full max-w-md">
-          <SearchOutlined className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <div className="relative w-full max-w-sm">
           <Input
             placeholder="Tìm theo tiêu đề"
             value={searchFilters.title}
             onChange={(e) =>
               setSearchFilters({ ...searchFilters, title: e.target.value })
             }
-            className="pl-10 text-gray-900"
+            className="px-2 text-gray-900"
+            suffix={
+              searchFilters.title && (
+                <CloseOutlined
+                  onClick={() =>
+                    setSearchFilters({ ...searchFilters, title: '' })
+                  }
+                  style={{ cursor: 'pointer' }}
+                />
+              )
+            }
           />
         </div>
         <Select
@@ -594,12 +604,6 @@ const PostsManagement = () => {
           className="bg-gray-900 text-white hover:bg-gray-800"
         >
           Tìm kiếm
-        </Button>
-        <Button
-          onClick={resetSearchFilters}
-          className="text-gray-700 hover:text-gray-900"
-        >
-          Xoá bộ lọc
         </Button>
         <div style={{ marginLeft: 'auto' }}>
           <Button
