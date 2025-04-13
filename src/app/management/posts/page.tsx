@@ -564,13 +564,15 @@ const PostsManagement = () => {
             suffix={
               searchFilters.title && (
                 <CloseOutlined
-                  onClick={() =>
-                    setSearchFilters({ ...searchFilters, title: '' })
-                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSearchFilters({ ...searchFilters, title: '' });
+                  }}
                   style={{ cursor: 'pointer' }}
                 />
               )
             }
+            autoFocus
           />
         </div>
         <Select

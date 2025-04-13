@@ -11,6 +11,7 @@ import {
   Form,
   message,
   Spin,
+  Dropdown,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -19,6 +20,7 @@ import {
   DeleteOutlined,
   SearchOutlined,
   EyeOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import DynamicReactQuill from '@/components/DynamicReactQuill';
 import {
@@ -156,13 +158,15 @@ const TicketsManagement = () => {
 
   const handleEdit = () => {
     if (!selectedRecord) {
-      message.warning('Vui lòng chọn một bản ghi để sửa!');
+      message.warning('Vui lòng chọn một vé để sửa!');
       return;
     }
 
     form.setFieldsValue({
-      ...selectedRecord,
-      price: selectedRecord.price.toString(),
+      name: selectedRecord.name,
+      price: selectedRecord.price,
+      type: selectedRecord.type,
+      description: selectedRecord.description,
     });
 
     setIsViewMode(false);
@@ -175,13 +179,15 @@ const TicketsManagement = () => {
 
   const handleView = () => {
     if (!selectedRecord) {
-      message.warning('Vui lòng chọn một bản ghi để xem!');
+      message.warning('Vui lòng chọn một vé để xem!');
       return;
     }
 
     form.setFieldsValue({
-      ...selectedRecord,
-      price: selectedRecord.price.toString(),
+      name: selectedRecord.name,
+      price: selectedRecord.price,
+      type: selectedRecord.type,
+      description: selectedRecord.description,
     });
 
     setIsViewMode(true);
@@ -190,25 +196,23 @@ const TicketsManagement = () => {
 
   const handleDelete = () => {
     if (!selectedRecord) {
-      message.warning('Vui lòng chọn một bản ghi để xoá!');
+      message.warning('Vui lòng chọn một vé để xoá!');
       return;
     }
 
     Modal.confirm({
       title: 'Xác nhận xoá',
       content: `Bạn có chắc chắn muốn xoá vé: "${selectedRecord.name}"?`,
-      okText: 'OK',
+      okText: 'Xoá',
       okType: 'danger',
-      cancelText: 'Hủy',
+      cancelText: 'Huỷ',
       onOk: async () => {
         try {
           setLoading(true);
           await deleteTicket(selectedRecord.documentId);
-
-          // Refresh the list
+          message.success('Xoá vé thành công');
           fetchTickets();
           setSelectedRecord(null);
-          message.success('Đã xoá vé thành công');
         } catch (error) {
           console.error('Error deleting ticket:', error);
           message.error('Không thể xoá vé');
@@ -306,6 +310,50 @@ const TicketsManagement = () => {
       dataIndex: 'update_at',
       key: 'update_at',
     },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      width: 100,
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'view',
+                label: 'Xem',
+                icon: <EyeOutlined />,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleView();
+                },
+              },
+              {
+                key: 'edit',
+                label: 'Sửa',
+                icon: <EditOutlined />,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleEdit();
+                },
+              },
+              {
+                key: 'delete',
+                label: 'Xóa',
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => {
+                  setSelectedRecord(record);
+                  handleDelete();
+                },
+              },
+            ],
+          }}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      ),
+    },
   ];
 
   // Add check before rendering
@@ -328,48 +376,12 @@ const TicketsManagement = () => {
           style={{ width: 200 }}
           prefix={<SearchOutlined />}
         />
-        <Select
-          placeholder="Loại vé"
-          allowClear
-          style={{ width: 180 }}
-          value={searchFilters.type}
-          onChange={(value) =>
-            setSearchFilters({ ...searchFilters, type: value })
-          }
-          options={[
-            { value: 'Vé lẻ', label: 'Vé lẻ' },
-            { value: 'Vé đoàn', label: 'Vé đoàn' },
-            { value: 'Vé ưu đãi', label: 'Vé ưu đãi' },
-          ]}
-        />
         <Button type="primary" onClick={handleSearch} icon={<SearchOutlined />}>
           Tìm kiếm
         </Button>
         <div style={{ marginLeft: 'auto' }}>
-          <Button
-            type="primary"
-            onClick={showModal}
-            icon={<PlusOutlined />}
-            style={{ marginRight: 8 }}
-          >
+          <Button type="primary" onClick={showModal} icon={<PlusOutlined />}>
             Thêm mới
-          </Button>
-          <Button
-            onClick={handleView}
-            icon={<EyeOutlined />}
-            style={{ marginRight: 8 }}
-          >
-            Xem
-          </Button>
-          <Button
-            onClick={handleEdit}
-            icon={<EditOutlined />}
-            style={{ marginRight: 8 }}
-          >
-            Sửa
-          </Button>
-          <Button danger onClick={handleDelete} icon={<DeleteOutlined />}>
-            Xóa
           </Button>
         </div>
       </div>
