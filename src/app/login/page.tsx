@@ -31,7 +31,12 @@ export default function AdminLoginPage() {
     e.preventDefault();
 
     if (!identifier || !password) {
-      snackbar.error('Error', 'Please fill in all fields');
+      snackbar.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    if (password.length < 6 || password.length > 30) {
+      snackbar.error('Mật khẩu phải từ 6 đến 30 ký tự');
       return;
     }
 
@@ -40,26 +45,21 @@ export default function AdminLoginPage() {
       const response = await login(identifier, password);
 
       if (get(response, 'permission')) {
-        snackbar.error(
-          'Error',
-          'You are not authorized to access this application'
-        );
+        snackbar.error('Bạn không có quyền truy cập vào ứng dụng này');
         return;
       }
       if (response.jwt && response.user) {
         setAuth(response.user, response.jwt);
-        snackbar.success('Success', 'Logged in successfully');
+        snackbar.success('Đăng nhập thành công');
         router.push('/management/users');
-      } else {
-        throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Login error:', error);
       snackbar.error(
-        'Login Failed',
+        'Đăng nhập thất bại',
         error instanceof Error
           ? error.message
-          : 'Failed to login. Please try again.'
+          : 'Đăng nhập thất bại. Vui lòng thử lại.'
       );
     } finally {
       setIsLoading(false);
@@ -95,12 +95,6 @@ export default function AdminLoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link
-                  href="/admin/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot password?
-                </Link>
               </div>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">

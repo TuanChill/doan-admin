@@ -240,9 +240,6 @@ const DashboardPage = () => {
             options={yearOptions}
             style={{ width: 120 }}
           />
-          <Button type="primary" onClick={fetchAllStats}>
-            Làm mới dữ liệu
-          </Button>
         </div>
       </div>
 

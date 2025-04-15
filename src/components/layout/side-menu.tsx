@@ -44,13 +44,10 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const { setCurrentTab } = useLayoutStore();
-  const [user, logout] = useUserStore((state: any) => [
-    state.user,
-    state.logout,
-  ]);
+  const [user, clear] = useUserStore((state: any) => [state.user, state.clear]);
 
   const handleLogout = () => {
-    logout();
+    clear();
     router.push(APP_URL.LOGIN);
     // showSuccess("Thành công", "Đăng xuất thành công");
   };
