@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import {Button,Table,Input,Select,Tag,Modal,Form,message,Checkbox} from 'antd';
-import {PlusOutlined,EditOutlined,DeleteOutlined,SearchOutlined,EyeOutlined,} from '@ant-design/icons';
-import ReactQuill from 'react-quill';
+import React, { useState } from 'react';
+import {Button,Table,Input,Select, Tag, Modal,Form,message,Checkbox,Upload,} from 'antd';
+import {PlusOutlined,EditOutlined,DeleteOutlined, SearchOutlined, EyeOutlined, UploadOutlined,} from '@ant-design/icons';
+import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
-import { Upload } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 const QuanLyBaiViet = () => {
   const [data, setData] = useState([
@@ -558,6 +558,6 @@ const QuanLyBaiViet = () => {
       `}</style>
     </div>
   );
-};
+}
 
-export default QuanLyBaiViet;
+export default QuanLyBaiViet
