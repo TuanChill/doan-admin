@@ -28,13 +28,6 @@ export const mockMonthlySales: MonthlySales[] = [
   { month: 'Tháng 12', salesAmount: 17500000, salesCount: 255 },
 ];
 
-// Mock data for top selling items
-export const mockTopItems: TopItem[] = [
-  { name: 'Vé người lớn', quantity: 1200, revenue: 60000000, type: 'ticket' as const },
-  { name: 'Vé trẻ em', quantity: 850, revenue: 25500000, type: 'ticket' as const },
-  { name: 'Vé đoàn', quantity: 320, revenue: 48000000, type: 'ticket' as const },
-];
-
 // Mock data for recent invoices
 export const mockRecentInvoices: RecentInvoice[] = [
   {

@@ -34,7 +34,6 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   mockSummaryData,
   mockMonthlySales,
-  mockTopItems,
   mockRecentInvoices,
 } from '@/lib/mockData';
 import {
@@ -101,7 +100,7 @@ const DashboardPage = () => {
     useState<MonthlySales[]>(mockMonthlySales);
   const [invoiceChart, setInvoiceChart] = useState<any[]>([]);
 
-  const [topItems, setTopItems] = useState<TopItem[]>(mockTopItems);
+  const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [recentInvoices, setRecentInvoices] =
     useState<RecentInvoice[]>(mockRecentInvoices);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
