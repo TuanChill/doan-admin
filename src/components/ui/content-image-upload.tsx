@@ -3,21 +3,15 @@ import { Button } from '@/components/ui/button';
 import { ImagePlus, Trash2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
-interface ImageData {
-  id: number;
-  url: string;
-  path: string;
-}
-
-interface ImageUploadProps {
-  value?: string | ImageData | null;
+interface ContentImageUploadProps {
+  value?: string;
   onChange?: (file: File) => void;
   onRemove?: () => void;
   disabled?: boolean;
   className?: string;
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({
+export const ContentImageUpload: React.FC<ContentImageUploadProps> = ({
   value,
   onChange,
   onRemove,
@@ -25,8 +19,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   className,
 }) => {
   const [loading, setLoading] = React.useState(false);
-  const uniqueId = React.useId();
-  const inputId = `cover-image-upload-${uniqueId}`;
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,22 +42,27 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     [onChange]
   );
 
-  // Get the image URL from either string or ImageData object
-  const getImageUrl = (): string | undefined => {
+  // Get the display URL with proper domain
+  const getDisplayUrl = (): string | undefined => {
     if (!value) return undefined;
 
-    // If value is a string, handle it directly
-    if (typeof value === 'string') {
-      return value.includes('http')
-        ? value
-        : `${process.env.NEXT_PUBLIC_API_URL}${value}`;
+    console.log('Image value in ContentImageUpload:', value);
+
+    // Add the API URL if the path is relative
+    if (value.startsWith('/')) {
+      const fullUrl = `${process.env.NEXT_PUBLIC_API_URL}${value}`;
+      console.log(`Adding API URL prefix: ${value} -> ${fullUrl}`);
+      return fullUrl;
     }
 
-    // If value is an ImageData object, use the url property
-    return value.url;
+    // Image already has full URL
+    console.log('Image already has complete URL:', value);
+    return value;
   };
 
-  const imageUrl = getImageUrl();
+  const displayUrl = getDisplayUrl();
+  const uniqueId = React.useId();
+  const inputId = `content-image-upload-${uniqueId}`;
 
   return (
     <div className={`relative max-w-[200px] ${className}`}>
@@ -77,10 +74,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         className="hidden"
         id={inputId}
       />
-      {imageUrl ? (
+      {displayUrl ? (
         <div className="relative h-[200px] w-[200px] overflow-hidden rounded-lg border border-border">
           <Image
-            src={imageUrl}
+            src={displayUrl}
             alt="Uploaded image"
             fill
             className="object-cover"

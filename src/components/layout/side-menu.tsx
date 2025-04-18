@@ -149,21 +149,12 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
 
   const actions = [
     {
-      icon: <RectangleEllipsis size={20} />,
-      label: 'Change password',
-      onClick: handleLogout,
-      className: 'h-10 gap-2 p-2',
-    },
-    {
       icon: <LogOut size={20} color="#D93E2D" />,
-      label: 'Logout',
+      label: 'Đăng xuất',
       onClick: handleLogout,
       className: 'text-[#D93E2D] p-2 hover:bg-red-50',
     },
   ];
-  const handleArrowClick = () => {
-    onArrowClick?.();
-  };
 
   useEffect(() => {
     setIsClient(true);
@@ -232,7 +223,7 @@ export const SideMenu = ({ isShowing, onArrowClick }: Props) => {
       >
         <div className="grow overflow-y-auto text-white">
           {!isShowing && (
-            <div className="flex h-max items-center justify-center px-4 py-3">
+            <div className="flex h-[69px] items-center justify-center px-4 py-3">
               <span className="text-lg font-medium">HT</span>
             </div>
           )}

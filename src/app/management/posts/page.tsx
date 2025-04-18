@@ -11,7 +11,6 @@ import {
   Form,
   message,
   Checkbox,
-  Upload,
   DatePicker,
   Space,
   Spin,
@@ -21,19 +20,18 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  SearchOutlined,
   EyeOutlined,
-  LoadingOutlined,
   MoreOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
-import type { UploadFile } from 'antd/es/upload/interface';
 import { API_ROUTES } from '@/const/routes';
 import { fdAxios } from '@/config/axios.config';
 import PostContentEditor from '@/components/NewPostContentEditor';
 import qs from 'qs';
 import dayjs from 'dayjs';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { useUserStore } from '@/stores/user-store';
+import { get } from 'lodash';
 
 interface Post {
   id: number;
@@ -82,6 +80,13 @@ interface Tag {
   name: string;
 }
 
+// Define a type for the image data
+interface ImageData {
+  id: number;
+  url: string;
+  path: string;
+}
+
 const PostsManagement = () => {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -98,8 +103,10 @@ const PostsManagement = () => {
     isHighlight: undefined,
   });
   const [filteredData, setFilteredData] = useState<PostRecord[]>([]);
-  const [imageFile, setImageFile] = useState<string>('');
+  const [imageFile, setImageFile] = useState<ImageData | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const { jwt } = useUserStore();
 
   // Safe initialization after component is mounted
   useEffect(() => {
@@ -135,37 +142,71 @@ const PostsManagement = () => {
       );
 
       const response = await fdAxios.get(`${API_ROUTES.POST}?${query}`);
-      const postsData = response.data.data;
+      console.log('Strapi API response:', response.data);
 
-      console.log(postsData);
+      const postsData = response.data.data;
+      console.log('First post example:', postsData[0]);
 
       const formattedData: PostRecord[] = postsData.map((post: any) => {
+        // Log the structure of a post to see how to access data
+        if (post.id === postsData[0].id) {
+          console.log('Post structure:', post);
+          console.log('Post image:', post.attributes?.image);
+          console.log('Post category:', post.attributes?.category);
+        }
+
+        // Strapi v4 nests data under 'attributes'
+        const attrs = post.attributes || post;
+
+        // Process content to ensure images have full URLs for display
+        let processedContent = attrs.content;
+        if (
+          processedContent?.content &&
+          Array.isArray(processedContent.content)
+        ) {
+          processedContent = {
+            content: processedContent.content.map((section: any) => {
+              if (section.image && !section.image.includes('http')) {
+                return {
+                  ...section,
+                  image: `${process.env.NEXT_PUBLIC_API_URL}${section.image}`,
+                };
+              }
+              return section;
+            }),
+          };
+        }
+
         return {
           id: post.id,
-          documentId: post.documentId || post.id.toString(),
+          documentId: get(post, 'documentId', ''),
           key: post.id.toString(),
-          title: post.title || '',
-          excerpt: post.excerpt || '',
-          date: post.date || '',
-          author: post.author || '',
-          authorBio: post.authorBio || '',
-          view: post.view || 0,
-          isHighlight: post.isHighlight || false,
-          content: post.content || { content: [] },
-          imageCaption: post.imageCaption || '',
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-          // Relationships data
-          image: post.image,
-          imageUrl: post.image?.data?.attributes?.url || '',
-          category: post.category,
-          categoryName: post.category?.data?.attributes?.name || '',
-          users_permissions_user: post.users_permissions_user,
+          title: attrs.title || '',
+          excerpt: attrs.excerpt || '',
+          date: attrs.date || '',
+          author: attrs.author || '',
+          authorBio: attrs.authorBio || '',
+          view: attrs.view || 0,
+          isHighlight: attrs.isHighlight || false,
+          content: processedContent || { content: [] },
+          imageCaption: attrs.imageCaption || '',
+          createdAt: attrs.createdAt,
+          updatedAt: attrs.updatedAt,
+          slug: attrs.slug || '',
+
+          // Relationships data - handle nulls
+          image: attrs.image,
+          imageUrl: attrs.image?.data?.attributes?.url
+            ? `${process.env.NEXT_PUBLIC_API_URL}${attrs.image.data.attributes.url}`
+            : '',
+          category: attrs.category,
+          categoryName: attrs.category?.data?.attributes?.name || '',
+          users_permissions_user: attrs.users_permissions_user,
           username:
-            post.users_permissions_user?.data?.attributes?.username || '',
-          tags: post.tags,
+            attrs.users_permissions_user?.data?.attributes?.username || '',
+          tags: attrs.tags,
           tagNames:
-            post.tags?.data?.map((tag: any) => tag.attributes.name) || [],
+            attrs.tags?.data?.map((tag: any) => tag.attributes?.name) || [],
         };
       });
 
@@ -253,12 +294,16 @@ const PostsManagement = () => {
   const showModal = () => {
     setSelectedRecord(null);
     setIsViewMode(false);
-    setImageFile('');
+    setImageFile(null);
+
+    // Reset form with initial values
     form.resetFields();
     form.setFieldsValue({
       date: dayjs(),
-      content: { content: [] },
+      content: { content: [{ heading: '', text: '', imageCaption: '' }] },
+      isHighlight: false,
     });
+
     setIsModalVisible(true);
   };
 
@@ -269,6 +314,16 @@ const PostsManagement = () => {
       return;
     }
 
+    console.log('Editing record:', selectedRecord);
+
+    // Set the image file for the cover image
+    setImageFile({
+      id: selectedRecord.image?.data?.id || 0,
+      url: selectedRecord.imageUrl || '',
+      path: selectedRecord.imageUrl || '',
+    });
+
+    // Set form values
     form.setFieldsValue({
       title: selectedRecord.title,
       excerpt: selectedRecord.excerpt,
@@ -278,6 +333,7 @@ const PostsManagement = () => {
       isHighlight: selectedRecord.isHighlight,
       content: selectedRecord.content,
       imageCaption: selectedRecord.imageCaption,
+      // Handle relationships
       categoryId: selectedRecord.category?.data?.id,
       tagIds: selectedRecord.tags?.data?.map((tag: any) => tag.id) || [],
     });
@@ -318,6 +374,15 @@ const PostsManagement = () => {
       return;
     }
 
+    console.log('Viewing record:', selectedRecord);
+
+    // Set the image file for the cover image
+    setImageFile({
+      id: selectedRecord.image?.data?.id || 0,
+      url: selectedRecord.imageUrl || '',
+      path: selectedRecord.imageUrl || '',
+    });
+
     form.setFieldsValue({
       title: selectedRecord.title,
       excerpt: selectedRecord.excerpt,
@@ -350,15 +415,36 @@ const PostsManagement = () => {
       cancelText: 'Huỷ',
       onOk: async () => {
         try {
-          await fdAxios.delete(
-            `${API_ROUTES.POST}/${selectedRecord.documentId}`
+          // Sử dụng fetch API thay vì fdAxios để đồng nhất cách xử lý API
+          console.log(
+            `Deleting post with documentId: ${selectedRecord.documentId}`
           );
+          const response = await fetch(
+            `${API_ROUTES.POST}/${selectedRecord.documentId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${jwt}`,
+              },
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Delete error details:', errorData);
+            throw new Error(
+              errorData.error?.message || `HTTP error: ${response.status}`
+            );
+          }
+
           message.success('Xoá bài viết thành công');
           fetchPosts();
           setSelectedRecord(null);
         } catch (error) {
           console.error('Error deleting post:', error);
-          message.error('Không thể xoá bài viết');
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          message.error('Không thể xoá bài viết: ' + errorMessage);
         }
       },
     });
@@ -375,10 +461,33 @@ const PostsManagement = () => {
     form.validateFields().then(async (values) => {
       try {
         setLoading(true);
+        console.log('Form values:', values);
 
-        // Prepare data for API
-        const postData: any = {
+        // Define a type for Strapi post data
+        interface StrapiPostData {
+          title: string;
+          slug: string;
+          excerpt: string;
+          date: string | null;
+          author: string;
+          authorBio: string;
+          content: any;
+          isHighlight: boolean;
+          imageCaption: string;
+          view: number;
+          category?: number;
+          users_permissions_user?: number;
+          tags?: number[];
+          image?: number; // Main image is ID
+        }
+
+        // Create the base post data
+        const postData: StrapiPostData = {
           title: values.title,
+          slug: values.title
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, ''),
           excerpt: values.excerpt || '',
           date: values.date ? values.date.format('YYYY-MM-DD') : null,
           author: values.author,
@@ -386,37 +495,100 @@ const PostsManagement = () => {
           content: values.content,
           isHighlight: values.isHighlight || false,
           imageCaption: values.imageCaption || '',
-          category: values.categoryId || null,
-          users_permissions_user: currentUser?.id || null,
-          tags: values.tagIds || [],
+          view: selectedRecord?.view || 0,
         };
 
-        // Handle image if it exists in the form
-        if (imageFile) {
-          postData.image = imageFile;
+        // Add category as direct ID number if specified
+        if (values.categoryId) {
+          postData.category = Number(values.categoryId);
         }
 
+        // Add user permissions user as ID if current user exists
+        if (currentUser?.id) {
+          postData.users_permissions_user = Number(currentUser.id);
+        }
+
+        // Add tags as array of IDs if specified
+        if (values.tagIds && values.tagIds.length > 0) {
+          postData.tags = values.tagIds.map((id: string | number) =>
+            Number(id)
+          );
+        }
+
+        // Add image ID if uploaded - Strapi expects numeric ID
+        if (imageFile && imageFile.id) {
+          postData.image = imageFile.id;
+          console.log('Setting image ID for Strapi:', imageFile.id);
+        }
+
+        // Create the request body that Strapi expects
+        const requestData = { data: postData };
+
+        console.log(
+          'Data being sent to Strapi:',
+          JSON.stringify(requestData, null, 2)
+        );
+
+        // Send the request to Strapi
+        let response;
         if (selectedRecord) {
-          // Update existing post
-          await fdAxios.put(`${API_ROUTES.POST}/${selectedRecord.documentId}`, {
-            data: postData,
-          });
-          message.success('Cập nhật bài viết thành công');
+          // Update existing post - use documentId instead of id
+          console.log(
+            `Updating post with documentId: ${selectedRecord.documentId}`
+          );
+          response = await fetch(
+            `${API_ROUTES.POST}/${selectedRecord.documentId}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwt}`,
+              },
+              body: JSON.stringify(requestData),
+            }
+          );
         } else {
           // Create new post
-          await fdAxios.post(`${API_ROUTES.POST}`, {
-            data: postData,
+          console.log('Creating new post');
+          response = await fetch(API_ROUTES.POST, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${jwt}`,
+            },
+            body: JSON.stringify(requestData),
           });
-          message.success('Thêm mới bài viết thành công');
         }
 
-        // Refresh data
+        const responseData = await response.json();
+        console.log('Strapi API response:', responseData);
+
+        if (!response.ok) {
+          if (responseData.error) {
+            console.error('Strapi error details:', responseData.error);
+            throw new Error(
+              responseData.error.message || 'Strapi returned an error'
+            );
+          } else {
+            throw new Error(`HTTP error: ${response.status}`);
+          }
+        }
+
+        // Success! Clean up and refresh
+        message.success(
+          selectedRecord
+            ? 'Cập nhật bài viết thành công'
+            : 'Thêm mới bài viết thành công'
+        );
         fetchPosts();
         setIsModalVisible(false);
         form.resetFields();
-      } catch (error) {
+        setImageFile(null);
+      } catch (error: unknown) {
         console.error('Error saving post:', error);
-        message.error('Không thể lưu bài viết');
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        message.error('Không thể lưu bài viết: ' + errorMessage);
       } finally {
         setLoading(false);
       }
@@ -553,7 +725,7 @@ const PostsManagement = () => {
 
       {/* Search and filter toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-4 bg-white p-4 shadow-sm">
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full max-w-[200px]">
           <Input
             placeholder="Tìm theo tiêu đề"
             value={searchFilters.title}
@@ -752,13 +924,14 @@ const PostsManagement = () => {
               value={imageFile}
               onChange={async (file) => {
                 try {
+                  console.log('Uploading cover image file:', file);
                   const formData = new FormData();
                   formData.append('files', file);
 
                   const response = await fetch(API_ROUTES.UPLOAD, {
                     method: 'POST',
                     headers: {
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                      Authorization: `Bearer ${jwt}`,
                     },
                     body: formData,
                   });
@@ -768,8 +941,29 @@ const PostsManagement = () => {
                   }
 
                   const data = await response.json();
+                  console.log('Full upload response from Strapi:', data);
+
                   if (data && data.length > 0) {
-                    setImageFile(data[0].url);
+                    // Extract the image ID and URL from response
+                    const imageId = data[0].id;
+                    const imageUrl = data[0].url;
+
+                    console.log('Main image uploaded successfully:', {
+                      id: imageId,
+                      url: imageUrl,
+                    });
+
+                    // For display, we need the full URL
+                    const displayUrl = imageUrl.startsWith('/')
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${imageUrl}`
+                      : imageUrl;
+
+                    // Store the image ID for Strapi and display URL for UI
+                    setImageFile({
+                      id: imageId,
+                      url: displayUrl,
+                      path: imageUrl,
+                    });
                   }
                 } catch (error) {
                   console.error('Error uploading image:', error);
@@ -777,8 +971,10 @@ const PostsManagement = () => {
                 }
               }}
               onRemove={() => {
-                setImageFile('');
+                console.log('Removing cover image');
+                setImageFile(null);
               }}
+              className="cover-image"
             />
           </Form.Item>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm, useFieldArray, SubmitHandler } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,10 +9,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ImageUpload } from '@/components/ui/image-upload';
+import { ContentImageUpload } from '@/components/ui/content-image-upload';
 import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { API_ROUTES } from '@/const/routes';
+import { useUserStore } from '@/stores/user-store';
 
 interface ContentSection {
   heading?: string;
@@ -46,11 +47,22 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
   readOnly = false,
 }) => {
   const [mounted, setMounted] = useState(false);
+  const { jwt } = useUserStore();
+  const initialRender = useRef(true);
+  const skipUpdate = useRef(false);
+  const lastContentRef = useRef<ContentSection[]>([]);
 
+  // Create a stable identity for default sections
+  const defaultSections = useRef([{ heading: '', text: '', imageCaption: '' }]);
+
+  // Initialize form with default values
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      sections: value?.content || [{ heading: '', text: '', imageCaption: '' }],
+      sections:
+        value?.content && value.content.length > 0
+          ? value.content
+          : defaultSections.current,
     },
   });
 
@@ -59,28 +71,96 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
     name: 'sections',
   });
 
+  // Initialize component and handle value changes from parent
   useEffect(() => {
     setMounted(true);
+
+    // Skip the first update to avoid circular updates
+    if (skipUpdate.current) {
+      skipUpdate.current = false;
+      return;
+    }
+
+    // Only reset if we have new values from parent and they're different
     if (value?.content) {
-      form.reset({ sections: value.content });
+      const newContent = JSON.stringify(value.content);
+      const currentContent = JSON.stringify(lastContentRef.current);
+
+      if (newContent !== currentContent) {
+        console.log('Resetting form with new content:', value.content);
+        lastContentRef.current = [...value.content];
+        form.reset({ sections: value.content });
+      }
     }
   }, [value, form]);
 
+  // Handle form submission (we don't actually submit, but use this for validation)
   const onSubmit: SubmitHandler<FormData> = (data) => {
     if (onChange) {
       onChange({ content: data.sections });
     }
   };
 
+  // Watch for form changes with deep comparison to avoid infinite updates
+  useEffect(() => {
+    if (!onChange) return;
+
+    // Only set up the watcher after initial render
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
+
+    const subscription = form.watch((data) => {
+      if (!data.sections) return;
+
+      // Compare with last known content to avoid redundant updates
+      const newContent = JSON.stringify(data.sections);
+      const prevContent = JSON.stringify(lastContentRef.current);
+
+      if (newContent !== prevContent) {
+        console.log('Content changed, triggering update');
+        skipUpdate.current = true; // Prevent circular updates
+
+        // Process content sections to ensure proper Strapi format
+        const processedSections = data.sections.map((section: any) => {
+          // Add backend URL to image paths
+          if (
+            section.image &&
+            typeof section.image === 'string' &&
+            section.image.startsWith('/')
+          ) {
+            console.log('Processing image URL in content:', section.image);
+
+            // Create a new section with the full image URL
+            return {
+              ...section,
+              image: `${process.env.NEXT_PUBLIC_API_URL}${section.image}`,
+            };
+          }
+
+          return section;
+        });
+
+        lastContentRef.current = JSON.parse(newContent);
+        onChange({ content: processedSections as ContentSection[] });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, onChange]);
+
+  // Handle image upload to Strapi
   const handleImageUpload = async (file: File, index: number) => {
     try {
+      console.log('Uploading content image:', file);
       const formData = new FormData();
       formData.append('files', file);
 
       const response = await fetch(API_ROUTES.UPLOAD, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${jwt}`,
         },
         body: formData,
       });
@@ -90,12 +170,27 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
       }
 
       const data = await response.json();
+      console.log(
+        'Content image upload response:',
+        JSON.stringify(data, null, 2)
+      );
+
       if (data && data.length > 0) {
+        // Get the URL path for content sections
         const imageUrl = data[0].url;
-        const sections = form.getValues('sections');
-        sections[index].image = imageUrl;
-        form.setValue('sections', sections);
-        form.trigger('sections');
+        console.log('Content image URL from Strapi:', imageUrl);
+
+        // Update the form with the image URL path (not the ID)
+        // We store the raw path as returned by Strapi without the API URL prefix
+        const currentSections = [...form.getValues('sections')];
+
+        // Store the raw path - will be displayed with prefix by ContentImageUpload
+        currentSections[index].image = imageUrl;
+        console.log(`Storing raw image path in section ${index}:`, imageUrl);
+
+        form.setValue('sections', currentSections);
+
+        // Return the image path for other uses
         return imageUrl;
       }
     } catch (error) {
@@ -107,7 +202,7 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
   if (!mounted) return null;
 
   return (
-    <form onChange={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       {fields.map((field, index) => (
         <Card key={field.id} className="relative">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -181,7 +276,7 @@ const PostContentEditor: React.FC<PostContentEditorProps> = ({
 
             <div className="space-y-2">
               <Label>Hình ảnh</Label>
-              <ImageUpload
+              <ContentImageUpload
                 value={form.getValues(`sections.${index}.image`)}
                 onChange={async (file) => {
                   try {
