@@ -27,4 +27,5 @@ export const API_ROUTES = {
   EMAIL_SERVICE: `${API_BASE}/email`,
   ACTIVITY_POINTS: `${API_BASE}/actions`,
   TICKETS: `${API_BASE}/tickets`,
+  REPORTS: `${API_BASE}/report`,
 };

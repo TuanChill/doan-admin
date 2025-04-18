@@ -52,6 +52,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import * as reportApi from '@/request/report';
+import { get } from 'lodash';
 
 export interface SummaryData {
   userCount: number;
@@ -70,10 +72,15 @@ export interface MonthlySales {
 }
 
 export interface TopItem {
-  name: string;
-  quantity: number;
-  revenue: number;
-  type: 'ticket' | 'service';
+  ticket?: {
+    id?: number;
+    name?: string;
+    type?: string;
+    price?: string;
+    description?: string;
+  };
+  count?: number;
+  revenue?: number;
 }
 
 export interface RecentInvoice {
@@ -92,31 +99,72 @@ const DashboardPage = () => {
   const [summary, setSummary] = useState<SummaryData>(mockSummaryData);
   const [monthlySales, setMonthlySales] =
     useState<MonthlySales[]>(mockMonthlySales);
+  const [invoiceChart, setInvoiceChart] = useState<any[]>([]);
+
   const [topItems, setTopItems] = useState<TopItem[]>(mockTopItems);
   const [recentInvoices, setRecentInvoices] =
     useState<RecentInvoice[]>(mockRecentInvoices);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedTab, setSelectedTab] = useState('1');
 
-  const { RangePicker } = DatePicker;
   const { TabPane } = Tabs;
 
   // Safe initialization after component is mounted
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetchAllStats();
+  }, [selectedYear]);
 
   // Fetch all statistics data
   const fetchAllStats = async () => {
     try {
       setLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      setSummary(mockSummaryData);
-      setMonthlySales(mockMonthlySales);
-      setRecentInvoices(mockRecentInvoices);
-      setTopItems(mockTopItems);
+      // Fetch overview data
+      const overviewData = await reportApi.getOverview(selectedYear);
+      if (overviewData) {
+        setSummary(overviewData);
+      }
+
+      // Fetch revenue chart data
+      const revenueChartData = await reportApi.getRevenueChart(selectedYear);
+
+      console.log('revenueChartData', revenueChartData);
+      if (revenueChartData && revenueChartData.data) {
+        setMonthlySales(revenueChartData.data || []);
+      }
+
+      // Fetch invoice chart data (used directly for the invoice count chart)
+      const invoiceChartData = await reportApi.getInvoiceChart(selectedYear);
+      if (invoiceChartData && invoiceChartData.data) {
+        setInvoiceChart(invoiceChartData.data || []);
+      }
+
+      // Fetch recent invoices
+      const recentInvoicesData = await reportApi.getRecentInvoice();
+      if (recentInvoicesData) {
+        const invoices = recentInvoicesData.data.map((invoice: any) => ({
+          ...invoice,
+          key: String(invoice.id || invoice._id),
+        }));
+        setRecentInvoices(invoices);
+      }
+
+      // Fetch top tickets
+      const topTicketsData = await reportApi.getTopTicket();
+      if (topTicketsData && topTicketsData.data) {
+        // Add some logging to debug the response
+        console.log('Top tickets data:', topTicketsData.data);
+
+        // Make sure we only use valid items
+        const validTopItems = Array.isArray(topTicketsData.data)
+          ? topTicketsData.data.filter(
+              (item: any) => item && typeof item === 'object'
+            )
+          : [];
+
+        setTopItems(validTopItems);
+      }
     } catch (error) {
       console.error('Error fetching dashboard statistics:', error);
       message.error('Không thể tải dữ liệu thống kê');
@@ -138,18 +186,6 @@ const DashboardPage = () => {
   const formatDate = (dateString: string) => {
     return dayjs(dateString).format('DD/MM/YYYY HH:mm');
   };
-
-  // Calculate max value for sales graph
-  const maxSalesAmount = useMemo(() => {
-    if (monthlySales.length === 0) return 100000;
-    return Math.max(...monthlySales.map((item) => item.salesAmount)) * 1.1;
-  }, [monthlySales]);
-
-  // Calculate max value for invoice count graph
-  const maxSalesCount = useMemo(() => {
-    if (monthlySales.length === 0) return 10;
-    return Math.max(...monthlySales.map((item) => item.salesCount)) * 1.1;
-  }, [monthlySales]);
 
   // Table columns for recent invoices
   const invoiceColumns: ColumnsType<RecentInvoice> = [
@@ -192,25 +228,27 @@ const DashboardPage = () => {
   const topItemsColumns: ColumnsType<TopItem> = [
     {
       title: 'Tên sản phẩm',
-      dataIndex: 'name',
-      key: 'name',
+      dataIndex: ['ticket', 'name'],
+      key: 'ticket.name',
+      render: (_, record) => record.ticket?.name || 'Unknown',
     },
     {
       title: 'Loại',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type) => (type === 'ticket' ? 'Vé' : 'Dịch vụ'),
+      dataIndex: ['ticket', 'type'],
+      key: 'ticket.type',
+      render: (_, record) => record.ticket?.type || 'Unknown',
     },
     {
       title: 'Số lượng',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      dataIndex: 'count',
+      key: 'count',
+      render: (count) => count || 0,
     },
     {
       title: 'Doanh thu',
       dataIndex: 'revenue',
       key: 'revenue',
-      render: (revenue) => formatCurrency(revenue),
+      render: (revenue) => formatCurrency(revenue || 0),
     },
   ];
 
@@ -240,6 +278,9 @@ const DashboardPage = () => {
             options={yearOptions}
             style={{ width: 120 }}
           />
+          <Button type="primary" onClick={fetchAllStats} loading={loading}>
+            Làm mới
+          </Button>
         </div>
       </div>
 
@@ -250,7 +291,7 @@ const DashboardPage = () => {
             <Card>
               <Statistic
                 title="Tổng số người dùng"
-                value={summary.userCount}
+                value={get(summary, 'totalUsers', 0)}
                 prefix={<UserOutlined />}
               />
             </Card>
@@ -259,7 +300,7 @@ const DashboardPage = () => {
             <Card>
               <Statistic
                 title="Tổng số hiện vật"
-                value={summary.exhibitCount}
+                value={get(summary, 'totalExhibits', 0)}
                 prefix={<ShopOutlined />}
               />
             </Card>
@@ -268,7 +309,7 @@ const DashboardPage = () => {
             <Card>
               <Statistic
                 title="Tổng số bài viết"
-                value={summary.postCount}
+                value={get(summary, 'totalPosts', 0)}
                 prefix={<FileTextOutlined />}
               />
             </Card>
@@ -277,7 +318,7 @@ const DashboardPage = () => {
             <Card>
               <Statistic
                 title="Tổng doanh thu năm"
-                value={formatCurrency(summary.totalSales)}
+                value={formatCurrency(get(summary, 'totalRevenue', 0))}
                 prefix={<DollarOutlined />}
               />
             </Card>
@@ -323,11 +364,7 @@ const DashboardPage = () => {
                       }
                     />
                     <Legend />
-                    <Bar
-                      dataKey="salesAmount"
-                      name="Doanh thu"
-                      fill="#1890ff"
-                    />
+                    <Bar dataKey="revenue" name="Doanh thu" fill="#1890ff" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -348,7 +385,7 @@ const DashboardPage = () => {
               </h3>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlySales}>
+                  <LineChart data={invoiceChart}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -356,63 +393,12 @@ const DashboardPage = () => {
                     <Legend />
                     <Line
                       type="monotone"
-                      dataKey="salesCount"
+                      dataKey="count"
                       name="Số lượng hóa đơn"
                       stroke="#ff7a45"
                       activeDot={{ r: 8 }}
                     />
                   </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </TabPane>
-          <TabPane
-            tab={
-              <span>
-                <PieChartOutlined />
-                Trạng thái vé
-              </span>
-            }
-            key="3"
-          >
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="mb-4 text-lg font-medium">
-                Thống kê trạng thái vé
-              </h3>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        {
-                          name: 'Đã sử dụng',
-                          value: summary.usedTicketsCount,
-                        },
-                        {
-                          name: 'Chưa sử dụng',
-                          value: summary.unusedTicketsCount,
-                        },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({
-                        name,
-                        percent,
-                      }: {
-                        name: string;
-                        percent: number;
-                      }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={150}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      <Cell fill="#52c41a" />
-                      <Cell fill="#1890ff" />
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -475,7 +461,12 @@ const DashboardPage = () => {
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={topItems}
+                data={topItems
+                  .filter((item) => item && item.ticket) // Filter out items without ticket property
+                  .map((item) => ({
+                    ...item,
+                    name: item.ticket?.name || 'Unknown', // Safe access with fallback
+                  }))}
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
